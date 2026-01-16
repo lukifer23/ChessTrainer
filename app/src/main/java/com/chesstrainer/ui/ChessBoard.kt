@@ -1,6 +1,8 @@
 package com.chesstrainer.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.chesstrainer.chess.*
 import kotlin.math.min
@@ -33,46 +36,79 @@ fun ChessBoard(
     selectedSquare: Square? = null,
     availableMoves: List<Move> = emptyList(),
     lastMove: Move? = null,
+    draggedPiece: Square? = null,
+    dragOffset: Offset = Offset.Zero,
     boardOrientation: com.chesstrainer.chess.Color = com.chesstrainer.chess.Color.WHITE,
     onSquareClick: (Square) -> Unit = {},
+    onDragStart: (Square) -> Unit = {},
+    onDragEnd: (Square?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val theme = BoardTheme()
+
+    var dragPosition by remember { mutableStateOf(Offset.Zero) }
 
     Canvas(
         modifier = modifier
             .aspectRatio(1f)
             .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val position = event.changes.first().position
-
-                        // Convert screen coordinates to board coordinates
-                        val boardSize = min(size.width, size.height).toFloat()
-                        val squareSize = boardSize / 8f
-                        val offsetX = (size.width - boardSize) / 2f
-                        val offsetY = (size.height - boardSize) / 2f
-
-                        val file = ((position.x - offsetX) / squareSize).toInt()
-                        val rank = ((position.y - offsetY) / squareSize).toInt()
-
-                        // Flip rank if black is at bottom
-                        val actualRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) {
-                            7 - rank
-                        } else {
-                            rank
-                        }
-
-                        if (file in 0..7 && actualRank in 0..7) {
-                            val square = Square(file, actualRank)
-                            onSquareClick(square)
-                        }
+                detectTapGestures(
+                    onTap = { offset ->
+                        val square = positionToSquare(offset, IntSize(size.width.toInt(), size.height.toInt()), boardOrientation)
+                        square?.let { onSquareClick(it) }
                     }
-                }
+                )
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        val square = positionToSquare(offset, IntSize(size.width.toInt(), size.height.toInt()), boardOrientation)
+                        if (square != null) {
+                            val piece = gameState.board.getPiece(square)
+                            if (piece != null && piece.color == gameState.currentPlayer) {
+                                onDragStart(square)
+                            }
+                        }
+                    },
+                    onDrag = { change, dragAmount ->
+                        dragPosition = change.position
+                    },
+                    onDragEnd = {
+                        val square = positionToSquare(dragPosition, IntSize(size.width.toInt(), size.height.toInt()), boardOrientation)
+                        onDragEnd(square)
+                        dragPosition = Offset.Zero
+                    },
+                    onDragCancel = {
+                        onDragEnd(null)
+                        dragPosition = Offset.Zero
+                    }
+                )
             }
     ) {
-        drawBoard(gameState, theme, selectedSquare, availableMoves, lastMove, boardOrientation)
+        drawBoard(gameState, theme, selectedSquare, availableMoves, lastMove, boardOrientation, draggedPiece, dragPosition)
+    }
+}
+
+private fun positionToSquare(position: Offset, canvasSize: IntSize, boardOrientation: com.chesstrainer.chess.Color): Square? {
+    val boardSize = min(canvasSize.width.toFloat(), canvasSize.height.toFloat())
+    val squareSize = boardSize / 8f
+    val offsetX = (canvasSize.width.toFloat() - boardSize) / 2f
+    val offsetY = (canvasSize.height.toFloat() - boardSize) / 2f
+
+    val file = ((position.x - offsetX) / squareSize).toInt()
+    val rank = ((position.y - offsetY) / squareSize).toInt()
+
+    // Flip rank if black is at bottom
+    val actualRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) {
+        7 - rank
+    } else {
+        rank
+    }
+
+    return if (file in 0..7 && actualRank in 0..7) {
+        Square(file, actualRank)
+    } else {
+        null
     }
 }
 
@@ -82,17 +118,14 @@ private fun DrawScope.drawBoard(
     selectedSquare: Square?,
     availableMoves: List<Move>,
     lastMove: Move?,
-    boardOrientation: com.chesstrainer.chess.Color
+    boardOrientation: com.chesstrainer.chess.Color,
+    draggedPiece: Square? = null,
+    dragPosition: Offset = Offset.Zero
 ) {
-    val boardSize = min(size.width * 0.95f, size.height * 0.95f) // Use 95% of available space
+    val boardSize = min(size.width, size.height).toFloat()
     val squareSize = boardSize / 8f
-    val coordinateSize = squareSize * 0.25f // Size for coordinate labels
-    val boardWithCoords = boardSize + coordinateSize * 2 // Include space for coordinates
 
-    val offsetX = (size.width - boardWithCoords) / 2f + coordinateSize
-    val offsetY = (size.height - boardWithCoords) / 2f + coordinateSize
-
-    // Draw squares and pieces
+    // Draw squares
     for (rank in 0..7) {
         for (file in 0..7) {
             val square = Square(file, rank)
@@ -115,8 +148,8 @@ private fun DrawScope.drawBoard(
 
             // Calculate position (accounting for orientation)
             val displayRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 - rank else rank
-            val x = offsetX + file * squareSize
-            val y = offsetY + displayRank * squareSize
+            val x = file * squareSize
+            val y = displayRank * squareSize
 
             // Draw square
             drawRect(
@@ -125,9 +158,9 @@ private fun DrawScope.drawBoard(
                 size = Size(squareSize, squareSize)
             )
 
-            // Draw piece using Unicode chess symbols
+            // Draw piece (skip if being dragged)
             val piece = gameState.board.getPiece(square)
-            if (piece != null) {
+            if (piece != null && square != draggedPiece) {
                 drawChessPiece(piece, x + squareSize / 2, y + squareSize / 2, squareSize * 0.8f)
             }
 
@@ -153,119 +186,102 @@ private fun DrawScope.drawBoard(
         }
     }
 
-    // Draw coordinate backgrounds
-    val coordStartX = (size.width - boardWithCoords) / 2f
-    val coordStartY = (size.height - boardWithCoords) / 2f
-
-    drawRect(
-        color = theme.coordinateBackground,
-        topLeft = Offset(coordStartX, coordStartY),
-        size = Size(boardWithCoords, coordinateSize)
-    )
-    drawRect(
-        color = theme.coordinateBackground,
-        topLeft = Offset(coordStartX, coordStartY + coordinateSize),
-        size = Size(coordinateSize, boardSize)
-    )
-
-    // Draw coordinates
-    drawCoordinates(offsetX, offsetY, boardSize, squareSize, coordinateSize, boardOrientation, theme)
-
     // Draw board border
     drawRect(
         color = theme.borderColor,
-        topLeft = Offset(offsetX - 2, offsetY - 2),
+        topLeft = Offset(-2f, -2f),
         size = Size(boardSize + 4, boardSize + 4),
         style = Stroke(width = 4f)
     )
+
+    // Draw dragged piece
+    if (draggedPiece != null) {
+        val draggedPieceObj = gameState.board.getPiece(draggedPiece)
+        if (draggedPieceObj != null) {
+            drawChessPiece(draggedPieceObj, dragPosition.x, dragPosition.y, boardSize * 0.1f)
+        }
+    }
 }
 
 private fun DrawScope.drawChessPiece(piece: Piece, centerX: Float, centerY: Float, size: Float) {
-    // Draw chess pieces as colored circles with clear piece type indicators
-    // This provides clear visual distinction and works reliably across all devices
-
-    val pieceColor = if (piece.color == com.chesstrainer.chess.Color.WHITE)
-        ComposeColor.White else ComposeColor(0xFF333333) // Dark gray for black pieces
-
-    // Draw main piece circle
-    drawCircle(
-        color = pieceColor,
-        center = Offset(centerX, centerY),
-        radius = size * 0.4f
-    )
-
-    // Draw black border
-    drawCircle(
-        color = ComposeColor.Black,
-        center = Offset(centerX, centerY),
-        radius = size * 0.4f,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
-    )
-
-    // Draw piece type indicator (colored dot on top-left)
-    val typeColor = when (piece.type) {
-        PieceType.KING -> ComposeColor.Yellow
-        PieceType.QUEEN -> ComposeColor(0xFFE91E63) // Pink
-        PieceType.ROOK -> ComposeColor.Red
-        PieceType.BISHOP -> ComposeColor(0xFF2196F3) // Blue
-        PieceType.KNIGHT -> ComposeColor(0xFF4CAF50) // Green
-        PieceType.PAWN -> ComposeColor(0xFF9E9E9E) // Gray
+    // Simple colored rectangle representation for now
+    // TODO: Replace with proper vector graphics or bitmap rendering
+    val color = when (piece.color) {
+        com.chesstrainer.chess.Color.WHITE -> androidx.compose.ui.graphics.Color(0xFFE8E8E8)
+        com.chesstrainer.chess.Color.BLACK -> androidx.compose.ui.graphics.Color(0xFF2A2A2A)
     }
 
-    drawCircle(
-        color = typeColor,
-        center = Offset(centerX - size * 0.2f, centerY - size * 0.2f),
-        radius = size * 0.12f
-    )
-
-    // Draw piece symbol indicator (small letter in center)
-    val symbol = when (piece.type) {
-        PieceType.KING -> "K"
-        PieceType.QUEEN -> "Q"
-        PieceType.ROOK -> "R"
-        PieceType.BISHOP -> "B"
-        PieceType.KNIGHT -> "N"
-        PieceType.PAWN -> "P"
+    val borderColor = when (piece.color) {
+        com.chesstrainer.chess.Color.WHITE -> androidx.compose.ui.graphics.Color.Black
+        com.chesstrainer.chess.Color.BLACK -> androidx.compose.ui.graphics.Color.White
     }
 
-    // Simple text drawing for the piece letter
-    val symbolColor = if (piece.color == com.chesstrainer.chess.Color.WHITE)
-        ComposeColor.Black else ComposeColor.White
+    // Draw piece body
+    drawRect(
+        color = color,
+        topLeft = Offset(centerX - size * 0.3f, centerY - size * 0.3f),
+        size = Size(size * 0.6f, size * 0.6f)
+    )
 
-    // Draw the piece letter (simplified - will be replaced with proper text rendering later)
-    // For now, we use the colored circles which provide clear visual distinction
-}
+    // Draw border
+    drawRect(
+        color = borderColor,
+        topLeft = Offset(centerX - size * 0.3f, centerY - size * 0.3f),
+        size = Size(size * 0.6f, size * 0.6f),
+        style = Stroke(width = 2f)
+    )
 
-private fun getChessPieceSymbol(piece: Piece): String {
-    return when (piece.color) {
-        com.chesstrainer.chess.Color.WHITE -> when (piece.type) {
-            PieceType.KING -> "♔"
-            PieceType.QUEEN -> "♕"
-            PieceType.ROOK -> "♖"
-            PieceType.BISHOP -> "♗"
-            PieceType.KNIGHT -> "♘"
-            PieceType.PAWN -> "♙"
+    // Draw simple piece type indicator
+    when (piece.type) {
+        PieceType.KING -> {
+            // Crown-like shape
+            drawRect(
+                color = borderColor,
+                topLeft = Offset(centerX - size * 0.15f, centerY - size * 0.25f),
+                size = Size(size * 0.3f, size * 0.1f)
+            )
         }
-        com.chesstrainer.chess.Color.BLACK -> when (piece.type) {
-            PieceType.KING -> "♚"
-            PieceType.QUEEN -> "♛"
-            PieceType.ROOK -> "♜"
-            PieceType.BISHOP -> "♝"
-            PieceType.KNIGHT -> "♞"
-            PieceType.PAWN -> "♟"
+        PieceType.QUEEN -> {
+            // Cross shape
+            drawRect(
+                color = borderColor,
+                topLeft = Offset(centerX - size * 0.02f, centerY - size * 0.25f),
+                size = Size(size * 0.04f, size * 0.2f)
+            )
+            drawRect(
+                color = borderColor,
+                topLeft = Offset(centerX - size * 0.1f, centerY - size * 0.17f),
+                size = Size(size * 0.2f, size * 0.04f)
+            )
+        }
+        PieceType.ROOK -> {
+            // Battlements
+            for (i in -1..1) {
+                drawRect(
+                    color = borderColor,
+                    topLeft = Offset(centerX + i * size * 0.08f - size * 0.04f, centerY - size * 0.25f),
+                    size = Size(size * 0.08f, size * 0.1f)
+                )
+            }
+        }
+        PieceType.BISHOP -> {
+            // Mitre
+            drawRect(
+                color = borderColor,
+                topLeft = Offset(centerX - size * 0.05f, centerY - size * 0.25f),
+                size = Size(size * 0.1f, size * 0.15f)
+            )
+        }
+        PieceType.KNIGHT -> {
+            // Horse head shape (simplified)
+            drawRect(
+                color = borderColor,
+                topLeft = Offset(centerX - size * 0.08f, centerY - size * 0.25f),
+                size = Size(size * 0.16f, size * 0.1f)
+            )
+        }
+        PieceType.PAWN -> {
+            // Simple pawn (no special shape needed)
         }
     }
-}
-
-private fun DrawScope.drawCoordinates(
-    offsetX: Float,
-    offsetY: Float,
-    boardSize: Float,
-    squareSize: Float,
-    coordinateSize: Float,
-    boardOrientation: com.chesstrainer.chess.Color,
-    theme: BoardTheme
-) {
-    // For now, coordinates are drawn as backgrounds only
-    // Text coordinates will be added later when text drawing is properly implemented
 }

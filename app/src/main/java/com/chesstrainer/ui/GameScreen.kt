@@ -46,6 +46,8 @@ fun GameScreen(
     var selectedSquare by remember { mutableStateOf<Square?>(null) }
     var availableMoves by remember { mutableStateOf<List<Move>>(emptyList()) }
     var lastMove by remember { mutableStateOf<Move?>(null) }
+    var draggedPiece by remember { mutableStateOf<Square?>(null) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
     var showGameOverDialog by remember { mutableStateOf(false) }
     var gameOverMessage by remember { mutableStateOf("") }
     var showBoard by remember { mutableStateOf(false) }
@@ -60,9 +62,13 @@ fun GameScreen(
                 lastMove = move
                 selectedSquare = null
                 availableMoves = emptyList()
+                draggedPiece = null
+                dragOffset = Offset.Zero
             }
         } catch (e: Exception) {
             // Ignore move errors for now
+            draggedPiece = null
+            dragOffset = Offset.Zero
         }
     }
 
@@ -109,7 +115,50 @@ fun GameScreen(
         }
     }
 
+    fun onDragStart(square: Square) {
+        val piece = gameState.board.getPiece(square)
+        if (piece != null && piece.color == gameState.currentPlayer) {
+            draggedPiece = square
+            selectedSquare = square
+            // Calculate available moves for the dragged piece
+            availableMoves = try {
+                MoveValidator.generateLegalMoves(gameState.board, gameState).filter { it.from == square }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    fun onDragEnd(dropSquare: Square?) {
+        if (draggedPiece == null) return
+
+        if (dropSquare != null) {
+            val dragMove = availableMoves.find { it.to == dropSquare }
+            if (dragMove != null) {
+                makeMove(dragMove)
+            } else {
+                // Invalid drop - reset drag state
+                draggedPiece = null
+                dragOffset = Offset.Zero
+                selectedSquare = null
+                availableMoves = emptyList()
+            }
+        } else {
+            // Dropped outside board - reset drag state
+            draggedPiece = null
+            dragOffset = Offset.Zero
+            selectedSquare = null
+            availableMoves = emptyList()
+        }
+    }
+
     fun onSquareClick(square: Square) {
+        if (draggedPiece != null) {
+            // If we're dragging, handle as drop
+            onDragEnd(square)
+            return
+        }
+
         val piece = gameState.board.getPiece(square)
 
         when {
@@ -290,8 +339,12 @@ fun GameScreen(
                     selectedSquare = selectedSquare,
                     availableMoves = availableMoves,
                     lastMove = lastMove,
+                    draggedPiece = draggedPiece,
+                    dragOffset = dragOffset,
                     boardOrientation = Color.WHITE,
-                    onSquareClick = ::onSquareClick
+                    onSquareClick = ::onSquareClick,
+                    onDragStart = ::onDragStart,
+                    onDragEnd = ::onDragEnd
                 )
             }
 
@@ -361,6 +414,8 @@ fun GameScreen(
                                 selectedSquare = null
                                 availableMoves = emptyList()
                                 lastMove = null
+                                draggedPiece = null
+                                dragOffset = Offset.Zero
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -399,6 +454,8 @@ fun GameScreen(
                         selectedSquare = null
                         availableMoves = emptyList()
                         lastMove = null
+                        draggedPiece = null
+                        dragOffset = Offset.Zero
                     }) {
                         Text("New Game")
                     }

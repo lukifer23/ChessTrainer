@@ -73,9 +73,18 @@ dependencies {
     // AndroidX
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation("androidx.appcompat:appcompat:1.6.1")
+
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+
+    // DataStore (better than SharedPreferences)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -85,6 +94,9 @@ dependencies {
 
     // File operations and sharing
     implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Coil for image loading (chess piece graphics)
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

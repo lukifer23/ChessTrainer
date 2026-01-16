@@ -1,5 +1,17 @@
 R_DEF: Internal format may change without notice
 local
+drawable ic_chess_bishop_black
+drawable ic_chess_bishop_white
+drawable ic_chess_king_black
+drawable ic_chess_king_white
+drawable ic_chess_knight_black
+drawable ic_chess_knight_white
+drawable ic_chess_pawn_black
+drawable ic_chess_pawn_white
+drawable ic_chess_queen_black
+drawable ic_chess_queen_white
+drawable ic_chess_rook_black
+drawable ic_chess_rook_white
 string accept_draw
 string analysis
 string app_name

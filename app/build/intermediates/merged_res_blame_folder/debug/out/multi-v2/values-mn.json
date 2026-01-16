@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.chesstrainer.app-mergeDebugResources-54:/values-mn/values-mn.xml",
+            "outputFile": "com.chesstrainer.app-mergeDebugResources-61:/values-mn/values-mn.xml",
             "map": [
                 {
                     "source": "/Users/admin/.gradle/caches/transforms-3/aad9720d793cc57cbf7dc0fa71535848/transformed/foundation-release/res/values-mn/values-mn.xml",

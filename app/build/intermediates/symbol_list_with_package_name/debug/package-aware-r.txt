@@ -647,6 +647,18 @@ drawable ic_call_answer_video
 drawable ic_call_answer_video_low
 drawable ic_call_decline
 drawable ic_call_decline_low
+drawable ic_chess_bishop_black
+drawable ic_chess_bishop_white
+drawable ic_chess_king_black
+drawable ic_chess_king_white
+drawable ic_chess_knight_black
+drawable ic_chess_knight_white
+drawable ic_chess_pawn_black
+drawable ic_chess_pawn_white
+drawable ic_chess_queen_black
+drawable ic_chess_queen_white
+drawable ic_chess_rook_black
+drawable ic_chess_rook_white
 drawable notification_action_background
 drawable notification_bg
 drawable notification_bg_low
@@ -734,6 +746,7 @@ id center_vertical
 id checkbox
 id checked
 id chronometer
+id coil_request_manager
 id collapseActionView
 id compose_view_saveable_id_tag
 id consume_window_insets_tag
