@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -186,6 +187,9 @@ private fun DrawScope.drawBoard(
         }
     }
 
+    // Draw coordinate labels
+    drawCoordinates(boardSize, squareSize, boardOrientation, theme)
+
     // Draw board border
     drawRect(
         color = theme.borderColor,
@@ -283,5 +287,39 @@ private fun DrawScope.drawChessPiece(piece: Piece, centerX: Float, centerY: Floa
         PieceType.PAWN -> {
             // Simple pawn (no special shape needed)
         }
+    }
+}
+
+private fun DrawScope.drawCoordinates(
+    boardSize: Float,
+    squareSize: Float,
+    boardOrientation: com.chesstrainer.chess.Color,
+    theme: BoardTheme
+) {
+    val coordinateSize = squareSize * 0.2f
+
+    // Draw file indicators (a-h) at the bottom - simple dots for now
+    val fileY = boardSize + coordinateSize * 0.5f
+    for (file in 0..7) {
+        val fileX = file * squareSize + squareSize / 2
+        // Draw a small dot for each file
+        drawCircle(
+            color = theme.coordinateColor,
+            center = Offset(fileX, fileY),
+            radius = coordinateSize * 0.3f
+        )
+    }
+
+    // Draw rank indicators (1-8) on the left side - small rectangles
+    val rankX = -coordinateSize * 0.4f
+    for (rank in 0..7) {
+        val displayRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 - rank else rank
+        val rankY = displayRank * squareSize + squareSize / 2
+        // Draw a small rectangle for each rank
+        drawRect(
+            color = theme.coordinateColor,
+            topLeft = Offset(rankX - coordinateSize * 0.2f, rankY - coordinateSize * 0.2f),
+            size = Size(coordinateSize * 0.4f, coordinateSize * 0.4f)
+        )
     }
 }
