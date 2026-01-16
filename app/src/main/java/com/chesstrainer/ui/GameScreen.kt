@@ -6,8 +6,16 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.chesstrainer.chess.*
+import com.chesstrainer.utils.EngineType
+import com.chesstrainer.utils.Settings
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class GameMode {
     HUMAN_VS_ENGINE,
@@ -29,6 +37,8 @@ fun GameScreen(
     onNavigateToAnalysis: () -> Unit,
     onNavigateToLessons: () -> Unit
 ) {
+    val context = LocalContext.current
+    val settings = remember { Settings(context) }
     val coroutineScope = rememberCoroutineScope()
 
     var gameState by remember { mutableStateOf(GameState()) }
@@ -40,6 +50,7 @@ fun GameScreen(
     var gameOverMessage by remember { mutableStateOf("") }
     var showBoard by remember { mutableStateOf(false) }
     var gameStarted by remember { mutableStateOf(false) }
+    var currentEngine by remember { mutableStateOf(settings.engineType) }
 
     fun makeMove(move: Move) {
         try {
@@ -151,12 +162,13 @@ fun GameScreen(
             Button(
                 onClick = {
                     gameMode = GameMode.HUMAN_VS_ENGINE
+                    currentEngine = settings.engineType
                     gameStarted = true
                     showBoard = true
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
-                Text("🎮 Start Human vs Engine")
+                Text("🎮 Human vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -164,12 +176,13 @@ fun GameScreen(
             OutlinedButton(
                 onClick = {
                     gameMode = GameMode.ENGINE_VS_ENGINE
+                    currentEngine = settings.engineType
                     gameStarted = true
                     showBoard = true
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
-                Text("🤖 Watch Engine vs Engine")
+                Text("🤖 ${settings.engineType.name.lowercase().replace("_", " ").capitalize()} vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -209,40 +222,58 @@ fun GameScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colors.background)
         ) {
-            // Top bar with game controls
-            Row(
+            // Top status bar
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                elevation = 4.dp
             ) {
-                // Game mode indicator
-                Text(
-                    text = when (gameMode) {
-                        GameMode.HUMAN_VS_ENGINE -> "Human vs Engine"
-                        GameMode.ENGINE_VS_ENGINE -> "Engine vs Engine"
-                        GameMode.FREE_PLAY -> "Free Play"
-                    },
-                    style = MaterialTheme.typography.h6
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Game mode and engine info
+                    Column {
+                        Text(
+                            text = when (gameMode) {
+                                GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                GameMode.FREE_PLAY -> "Free Play"
+                            },
+                            style = MaterialTheme.typography.subtitle1,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Text(
+                            text = when (currentEngine) {
+                                EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes/move"
+                                EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth}"
+                            },
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
 
-                // Action buttons
-                Row {
-                    IconButton(onClick = { /* Undo move */ }) {
-                        Text("↶")
-                    }
-                    IconButton(onClick = { /* Export game */ }) {
-                        Text("📄")
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Text("⚙")
-                    }
-                    IconButton(onClick = onNavigateToAnalysis) {
-                        Text("📊")
-                    }
-                    IconButton(onClick = onNavigateToLessons) {
-                        Text("📚")
+                    // Action buttons
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(onClick = { /* Undo move */ }, modifier = Modifier.size(36.dp)) {
+                            Text("↶", fontSize = 18.sp)
+                        }
+                        IconButton(onClick = { /* Export game */ }, modifier = Modifier.size(36.dp)) {
+                            Text("📄", fontSize = 18.sp)
+                        }
+                        IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
+                            Text("⚙", fontSize = 18.sp)
+                        }
+                        IconButton(onClick = onNavigateToAnalysis, modifier = Modifier.size(36.dp)) {
+                            Text("📊", fontSize = 18.sp)
+                        }
+                        IconButton(onClick = onNavigateToLessons, modifier = Modifier.size(36.dp)) {
+                            Text("📚", fontSize = 18.sp)
+                        }
                     }
                 }
             }
@@ -265,64 +296,86 @@ fun GameScreen(
             }
 
             // Game status and controls
-            Column(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                elevation = 4.dp
             ) {
-                // Current player indicator
-                Text(
-                    text = when {
-                        gameState.isGameOver() -> gameOverMessage
-                        gameState.currentPlayer == Color.WHITE -> "White to move"
-                        else -> "Black to move"
-                    },
-                    style = MaterialTheme.typography.h6,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-
-                if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
-                    Text(
-                        text = "Check!",
-                        color = androidx.compose.ui.graphics.Color.Red,
-                        style = MaterialTheme.typography.body2,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Move history
-                if (gameState.moveHistory.isNotEmpty()) {
-                    Text(
-                        text = "Moves: ${gameState.moveHistory.size}",
-                        style = MaterialTheme.typography.caption,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Game control buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
-                    Button(onClick = {
-                        gameState = GameState()
-                        selectedSquare = null
-                        availableMoves = emptyList()
-                        lastMove = null
-                        // Note: Engine restart would go here
-                    }) {
-                        Text("New Game")
+                    // Current player indicator and status
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = when {
+                                    gameState.isGameOver() -> gameOverMessage
+                                    gameState.currentPlayer == Color.WHITE -> "⚪ White to move"
+                                    else -> "⚫ Black to move"
+                                },
+                                style = MaterialTheme.typography.h6,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
+                                Text(
+                                    text = "🔴 Check!",
+                                    color = androidx.compose.ui.graphics.Color.Red,
+                                    style = MaterialTheme.typography.body2,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Game statistics
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Move ${gameState.fullMoveNumber}",
+                                style = MaterialTheme.typography.body2
+                            )
+                            Text(
+                                text = "${gameState.moveHistory.size} ply",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
                     }
 
-                    Button(onClick = {
-                        gameStarted = false
-                        showBoard = false
-                    }) {
-                        Text("Back to Setup")
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Game control buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                gameState = GameState()
+                                selectedSquare = null
+                                availableMoves = emptyList()
+                                lastMove = null
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🔄 New Game")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                gameStarted = false
+                                showBoard = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("⬅️ Back")
+                        }
                     }
                 }
             }
