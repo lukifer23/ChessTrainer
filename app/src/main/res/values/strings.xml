@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Chess Trainer</string>
+    <string name="new_game">New Game</string>
+    <string name="settings">Settings</string>
+    <string name="analysis">Analysis</string>
+    <string name="lessons">Lessons</string>
+    <string name="export_game">Export Game</string>
+    <string name="undo_move">Undo Move</string>
+    <string name="flip_board">Flip Board</string>
+    <string name="white_to_move">White to move</string>
+    <string name="black_to_move">Black to move</string>
+    <string name="check">Check!</string>
+    <string name="checkmate">Checkmate!</string>
+    <string name="stalemate">Stalemate!</string>
+    <string name="draw">Draw!</string>
+    <string name="game_over">Game Over</string>
+    <string name="resign">Resign</string>
+    <string name="offer_draw">Offer Draw</string>
+    <string name="accept_draw">Accept Draw</string>
+    <string name="decline_draw">Decline Draw</string>
+    <string name="leelachess_zero">LeelaChess Zero</string>
+    <string name="stockfish">Stockfish</string>
+    <string name="human_vs_engine">Human vs Engine</string>
+    <string name="engine_vs_engine">Engine vs Engine</string>
+    <string name="free_play">Free Play</string>
+    <string name="difficulty">Difficulty</string>
+    <string name="nodes">Nodes</string>
+    <string name="search_time">Search Time</string>
+    <string name="seconds">seconds</string>
+    <string name="depth">Depth</string>
+    <string name="plies">plies</string>
+</resources>

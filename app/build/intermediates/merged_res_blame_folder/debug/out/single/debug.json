@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/xml_file_paths.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/xml/file_paths.xml"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/xml_backup_rules.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/drawable_ic_launcher.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/drawable/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/drawable_ic_launcher.png.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/drawable/ic_launcher.png"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/mipmap-mdpi_ic_launcher.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/mipmap-mdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-56:/xml_data_extraction_rules.xml.flat",
+        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-58:/xml/data_extraction_rules.xml"
+    }
+]

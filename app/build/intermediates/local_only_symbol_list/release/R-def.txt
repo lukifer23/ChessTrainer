@@ -1,0 +1,36 @@
+R_DEF: Internal format may change without notice
+local
+string accept_draw
+string analysis
+string app_name
+string black_to_move
+string check
+string checkmate
+string decline_draw
+string depth
+string difficulty
+string draw
+string engine_vs_engine
+string export_game
+string flip_board
+string free_play
+string game_over
+string human_vs_engine
+string leelachess_zero
+string lessons
+string new_game
+string nodes
+string offer_draw
+string plies
+string resign
+string search_time
+string seconds
+string settings
+string stalemate
+string stockfish
+string undo_move
+string white_to_move
+style Theme.ChessTrainer
+xml backup_rules
+xml data_extraction_rules
+xml file_paths
