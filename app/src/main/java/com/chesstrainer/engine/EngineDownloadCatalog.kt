@@ -5,6 +5,7 @@ object EngineDownloadCatalog {
     const val LC0_VERSION = "0.32.1"
     const val LC0_WEIGHTS_ID = "9149"
 
+    // Stockfish publishes Android binaries for ARM ABIs only; x86 devices are currently unsupported.
     val stockfishDownloads: Map<String, EngineInstaller.EngineDownloadSpec> = mapOf(
         "arm64-v8a" to EngineInstaller.EngineDownloadSpec(
             url = "https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish-android-armv8.tar",
@@ -41,6 +42,22 @@ object EngineDownloadCatalog {
             archiveType = EngineInstaller.ArchiveType.ZIP,
             archiveEntryPath = "lib/armeabi-v7a/liblc0.so",
             label = "LC0 0.32.1 CLI (armeabi-v7a)"
+        ),
+        "x86" to EngineInstaller.EngineDownloadSpec(
+            url = "https://github.com/LeelaChessZero/lc0/releases/download/v0.32.1/lc0-v0.32.1-android.apk",
+            sha256 = "1ceb6ac5dd454fd41417debebc1ecd40172f0a83d451b67a9fd1fa1e30470a34",
+            fileName = "lc0",
+            archiveType = EngineInstaller.ArchiveType.ZIP,
+            archiveEntryPath = "lib/x86/liblc0.so",
+            label = "LC0 0.32.1 CLI (x86)"
+        ),
+        "x86_64" to EngineInstaller.EngineDownloadSpec(
+            url = "https://github.com/LeelaChessZero/lc0/releases/download/v0.32.1/lc0-v0.32.1-android.apk",
+            sha256 = "1ceb6ac5dd454fd41417debebc1ecd40172f0a83d451b67a9fd1fa1e30470a34",
+            fileName = "lc0",
+            archiveType = EngineInstaller.ArchiveType.ZIP,
+            archiveEntryPath = "lib/x86_64/liblc0.so",
+            label = "LC0 0.32.1 CLI (x86_64)"
         )
     )
 
