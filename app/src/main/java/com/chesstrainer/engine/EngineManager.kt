@@ -40,7 +40,6 @@ class EngineManager(
     private val _responses = MutableSharedFlow<UCIParser.UCIResponse>()
     val responses: Flow<UCIParser.UCIResponse> = _responses.asSharedFlow()
 
-    private val responseBuffer = mutableListOf<String>()
     private var outputJob: Job? = null
 
     /**
@@ -61,22 +60,28 @@ class EngineManager(
      */
     suspend fun startEngine(): Result<Unit> = mutex.withLock {
         try {
+            android.util.Log.d("EngineManager", "Starting engine: ${settings.engineType}")
             val currentProcess = process
             if (currentProcess != null && !isProcessTerminated(currentProcess)) {
+                android.util.Log.d("EngineManager", "Engine already running")
                 return Result.success(Unit)
             }
 
             // Ensure engine binary (and weights, if needed) are installed
+            android.util.Log.d("EngineManager", "Ensuring engine is installed")
             val engineAssets = installer.ensureInstalled(settings.engineType)
             engineAssets.fold(
                 onSuccess = { assets ->
+                    android.util.Log.d("EngineManager", "Engine assets: ${assets.engineBinary.absolutePath}")
                     lc0WeightsFile = assets.weightsFile
 
                     val processBuilder = java.lang.ProcessBuilder(assets.engineBinary.absolutePath)
                         .directory(assets.engineBinary.parentFile)
                         .redirectErrorStream(true)
 
+                    android.util.Log.d("EngineManager", "Starting process")
                     process = processBuilder.start().also { proc: java.lang.Process ->
+                        android.util.Log.d("EngineManager", "Process started successfully")
                         writer = BufferedWriter(OutputStreamWriter(proc.outputStream))
                         reader = BufferedReader(InputStreamReader(proc.inputStream))
 
@@ -90,10 +95,12 @@ class EngineManager(
                     Result.success(Unit)
                 },
                 onFailure = { error ->
+                    android.util.Log.e("EngineManager", "Failed to install engine", error)
                     Result.failure(error)
                 }
             )
         } catch (e: Exception) {
+            android.util.Log.e("EngineManager", "Failed to start engine", e)
             Result.failure(Exception("Failed to start engine: ${e.message}", e))
         }
     }

@@ -24,7 +24,9 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
     override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
         scope.launch {
             try {
+                android.util.Log.d("LeelaEngine", "Starting getBestMove")
                 ensureInitialized()
+                android.util.Log.d("LeelaEngine", "Engine initialized successfully")
 
                 val searchParams = EngineManager.SearchParams(
                     nodes = settings.leelaNodes.takeIf { it > 0 }?.toLong(),
@@ -34,11 +36,13 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
                 engineManager?.startSearch(
                     gameState = gameState,
                     onBestMove = { move ->
+                        android.util.Log.d("LeelaEngine", "Best move found: $move")
                         callback(move)
                     },
                     searchParams = searchParams
                 )
             } catch (e: Exception) {
+                android.util.Log.e("LeelaEngine", "Error in getBestMove", e)
                 // Fallback to simple engine if Leela fails
                 SimpleChessEngine().getBestMove(gameState, callback)
             }

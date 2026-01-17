@@ -28,16 +28,12 @@
         "source": "com.chesstrainer.app-main-65:/drawable/ic_chess_knight_white.xml"
     },
     {
-        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-63:/xml_file_paths.xml.flat",
-        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-65:/xml/file_paths.xml"
-    },
-    {
-        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-63:/xml_data_extraction_rules.xml.flat",
-        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-65:/xml/data_extraction_rules.xml"
-    },
-    {
         "merged": "com.chesstrainer.app-merged_res-63:/drawable_ic_chess_bishop_black.xml.flat",
         "source": "com.chesstrainer.app-main-65:/drawable/ic_chess_bishop_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-63:/xml_file_paths.xml.flat",
+        "source": "com.chesstrainer.app-main-65:/xml/file_paths.xml"
     },
     {
         "merged": "com.chesstrainer.app-merged_res-63:/drawable_ic_chess_queen_black.xml.flat",
@@ -52,8 +48,12 @@
         "source": "com.chesstrainer.app-main-65:/drawable/ic_chess_bishop_white.xml"
     },
     {
-        "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-63:/xml_backup_rules.xml.flat",
-        "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-65:/xml/backup_rules.xml"
+        "merged": "com.chesstrainer.app-merged_res-63:/xml_backup_rules.xml.flat",
+        "source": "com.chesstrainer.app-main-65:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-63:/xml_data_extraction_rules.xml.flat",
+        "source": "com.chesstrainer.app-main-65:/xml/data_extraction_rules.xml"
     },
     {
         "merged": "com.chesstrainer.app-merged_res-63:/drawable_ic_chess_king_white.xml.flat",

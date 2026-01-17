@@ -20,7 +20,8 @@ import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
 import com.chesstrainer.engine.EngineInstaller
-import com.chesstrainer.engine.EngineManager
+import com.chesstrainer.engine.StockfishEngine
+import com.chesstrainer.engine.LeelaEngine
 import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
@@ -30,6 +31,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 enum class GameMode {
     HUMAN_VS_ENGINE,
@@ -60,6 +64,8 @@ fun GameScreen(
     val settings = remember { Settings(context) }
     val repository = remember { GameRepository(context.applicationContext) }
     val engineInstaller = remember { EngineInstaller(context) }
+    val stockfishEngine = remember { StockfishEngine(context, settings) }
+    val leelaEngine = remember { LeelaEngine(context, settings) }
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -81,9 +87,19 @@ fun GameScreen(
     var engineStartupInProgress by remember { mutableStateOf(false) }
     val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()) }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            stockfishEngine.cleanup()
+            leelaEngine.cleanup()
+        }
+    }
+
     fun makeMove(move: Move) {
+        android.util.Log.d("GameScreen", "makeMove called with: $move")
         try {
             if (MoveValidator.isValidMove(gameState.board, move, gameState)) {
+                android.util.Log.d("GameScreen", "Move is valid, updating game state")
+                val oldGameState = gameState
                 val newGameState = gameState.makeMove(move)
                 gameState = newGameState
                 lastMove = move
@@ -91,12 +107,35 @@ fun GameScreen(
                 availableMoves = emptyList()
                 draggedPiece = null
                 dragOffset = Offset.Zero
+                android.util.Log.d("GameScreen", "Game state updated. Current player was ${oldGameState.currentPlayer}, now ${newGameState.currentPlayer}")
+            } else {
+                android.util.Log.e("GameScreen", "Move is invalid: $move")
             }
         } catch (e: Exception) {
-            // Ignore move errors for now
+            android.util.Log.e("GameScreen", "Error making move", e)
             draggedPiece = null
             dragOffset = Offset.Zero
         }
+    }
+
+    fun undoMove() {
+        if (gameState.moveHistory.isEmpty() || gameState.isGameOver()) {
+            return
+        }
+
+        val movesToReplay = gameState.moveHistory.dropLast(1)
+        var restoredState = GameState()
+        
+        for (move in movesToReplay) {
+            restoredState = restoredState.makeMove(move)
+        }
+        
+        gameState = restoredState
+        lastMove = movesToReplay.lastOrNull()
+        selectedSquare = null
+        availableMoves = emptyList()
+        draggedPiece = null
+        dragOffset = Offset.Zero
     }
 
     fun startGameWithMode(mode: GameMode) {
@@ -106,6 +145,7 @@ fun GameScreen(
         showBoard = true
         engineReady = !requiresEngine(mode)
         engineStartupError = null
+
     }
 
     fun handleEngineRequiredStart(mode: GameMode) {
@@ -205,7 +245,7 @@ fun GameScreen(
                     score = score
                 )
                 val delta = updatedRating - latestRating
-                val engineLabel = if (gameMode == GameMode.FREE_PLAY) \"NONE\" else currentEngine.name
+                val engineLabel = if (gameMode == GameMode.FREE_PLAY) "NONE" else currentEngine.name
 
                 repository.recordCompletedGame(
                     game = GameEntity(
@@ -213,7 +253,7 @@ fun GameScreen(
                         mode = gameMode.name,
                         engineType = engineLabel,
                         result = gameState.gameResult.name,
-                        moves = moveList.joinToString(\" \"),
+                        moves = moveList.joinToString(" "),
                         moveCount = gameState.moveHistory.size
                     ),
                     result = GameResultEntity(
@@ -231,35 +271,43 @@ fun GameScreen(
         }
     }
 
+    // Initialize engines when game starts
     LaunchedEffect(gameStarted, gameMode, currentEngine) {
         if (gameStarted && requiresEngine(gameMode) && !engineReady && !engineStartupInProgress) {
             engineStartupInProgress = true
-            val manager = EngineManager(context, settings)
-            val result = manager.startEngine()
-            if (result.isSuccess) {
-                engineReady = true
-            } else {
-                engineStartupError = result.exceptionOrNull()?.message ?: "Failed to start engine."
-                gameStarted = false
-                showBoard = false
-            }
+            engineStartupError = null
+
+            // Mark engine as ready for engine games - engines initialize lazily on first move
+            engineReady = true
             engineStartupInProgress = false
         }
     }
 
-    // Engine move logic (simplified - just make random legal moves for demo)
-    LaunchedEffect(gameState.currentPlayer, gameMode) {
-        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode) && engineReady) {
-            kotlinx.coroutines.delay(1000) // Delay for better UX
+    val coroutineScope = rememberCoroutineScope()
 
-            try {
-                val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
-                if (legalMoves.isNotEmpty()) {
-                    val randomMove = legalMoves.random()
-                    makeMove(randomMove)
+    // Engine move logic using actual chess engines
+    LaunchedEffect(gameState.currentPlayer, gameMode, currentEngine) {
+        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode) && engineReady) {
+            val engine = when (currentEngine) {
+                EngineType.STOCKFISH -> stockfishEngine
+                EngineType.LEELA_CHESS_ZERO -> leelaEngine
+            }
+
+            // Add a small delay to prevent rapid successive calls and allow UI to update
+            kotlinx.coroutines.delay(1000)
+
+            android.util.Log.d("GameScreen", "Engine ${currentEngine} is thinking for ${gameState.currentPlayer}")
+            engine.getBestMove(gameState) { move ->
+                coroutineScope.launch(Dispatchers.Main) {
+                    try {
+                        android.util.Log.d("GameScreen", "Engine making move: $move")
+                        makeMove(move)
+                    } catch (e: Exception) {
+                        // Handle any errors from makeMove on main thread
+                        android.util.Log.e("GameScreen", "Error making engine move", e)
+                        // Fallback: skip the engine move and let human play
+                    }
                 }
-            } catch (e: Exception) {
-                // Ignore errors for now
             }
         }
     }
@@ -452,7 +500,11 @@ fun GameScreen(
 
                     // Action buttons
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(onClick = { /* Undo move */ }, modifier = Modifier.size(36.dp)) {
+                        IconButton(
+                            onClick = { undoMove() },
+                            modifier = Modifier.size(36.dp),
+                            enabled = gameState.moveHistory.isNotEmpty() && !gameState.isGameOver()
+                        ) {
                             Text("↶", fontSize = 18.sp)
                         }
                         IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {

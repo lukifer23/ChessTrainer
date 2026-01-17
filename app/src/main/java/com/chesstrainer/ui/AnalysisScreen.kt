@@ -163,30 +163,6 @@ fun AnalysisScreen(onNavigateBack: () -> Unit) {
         }
     }
 
-    fun onSquareClick(square: Square) {
-        if (draggedPiece != null) {
-            onDragEnd(square)
-            return
-        }
-        val piece = gameState.board.getPiece(square)
-        if (selectedSquare == square) {
-            selectedSquare = null
-            availableMoves = emptyList()
-        } else if (piece != null && piece.color == gameState.currentPlayer) {
-            selectedSquare = square
-            availableMoves = try {
-                MoveValidator.generateLegalMoves(gameState.board, gameState).filter { it.from == square }
-            } catch (e: Exception) {
-                emptyList()
-            }
-        } else if (selectedSquare != null) {
-            val move = availableMoves.find { it.to == square }
-            if (move != null) {
-                makeMove(move)
-            }
-        }
-    }
-
     fun onDragStart(square: Square) {
         val piece = gameState.board.getPiece(square)
         if (piece != null && piece.color == gameState.currentPlayer) {
@@ -218,6 +194,30 @@ fun AnalysisScreen(onNavigateBack: () -> Unit) {
             dragOffset = Offset.Zero
             selectedSquare = null
             availableMoves = emptyList()
+        }
+    }
+
+    fun onSquareClick(square: Square) {
+        if (draggedPiece != null) {
+            onDragEnd(square)
+            return
+        }
+        val piece = gameState.board.getPiece(square)
+        if (selectedSquare == square) {
+            selectedSquare = null
+            availableMoves = emptyList()
+        } else if (piece != null && piece.color == gameState.currentPlayer) {
+            selectedSquare = square
+            availableMoves = try {
+                MoveValidator.generateLegalMoves(gameState.board, gameState).filter { it.from == square }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else if (selectedSquare != null) {
+            val move = availableMoves.find { it.to == square }
+            if (move != null) {
+                makeMove(move)
+            }
         }
     }
 

@@ -159,24 +159,5 @@ fun HomeScreen(
             Text("• ✅ Multiple game modes")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "🚧 Coming Soon:",
-            style = MaterialTheme.typography.h6,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Column(
-            modifier = Modifier.align(Alignment.Start),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text("• Real LeelaChess0/Stockfish engine integration")
-            Text("• Position analysis and evaluation")
-            Text("• Interactive chess lessons")
-            Text("• Advanced settings and preferences")
-        }
     }
 }

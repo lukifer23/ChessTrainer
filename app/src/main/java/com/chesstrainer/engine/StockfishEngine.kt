@@ -26,7 +26,9 @@ class StockfishEngine(private val context: Context, private val settings: Settin
     override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
         scope.launch {
             try {
+                android.util.Log.d("StockfishEngine", "Starting getBestMove")
                 ensureInitialized()
+                android.util.Log.d("StockfishEngine", "Engine initialized successfully")
 
                 val searchParams = EngineManager.SearchParams(
                     depth = settings.stockfishDepth.takeIf { it > 0 },
@@ -36,11 +38,13 @@ class StockfishEngine(private val context: Context, private val settings: Settin
                 engineManager?.startSearch(
                     gameState = gameState,
                     onBestMove = { move ->
+                        android.util.Log.d("StockfishEngine", "Best move found: $move")
                         callback(move)
                     },
                     searchParams = searchParams
                 )
             } catch (e: Exception) {
+                android.util.Log.e("StockfishEngine", "Error in getBestMove", e)
                 // Fallback to simple engine if Stockfish fails
                 SimpleChessEngine().getBestMove(gameState, callback)
             }
