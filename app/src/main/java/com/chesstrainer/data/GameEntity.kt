@@ -10,6 +10,8 @@ data class GameEntity(
     val playedAt: Long,
     val mode: String,
     val engineType: String,
+    val engineConfig: String,
+    val timeControl: String,
     val result: String,
     val moves: String,
     val moveCount: Int
