@@ -6,9 +6,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.chesstrainer.engine.EngineInstaller
@@ -35,6 +37,17 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     var installMessage by remember { mutableStateOf<String?>(null) }
     var installError by remember { mutableStateOf(false) }
     var isInstalling by remember { mutableStateOf(false) }
+    var backendValidationMessage by remember { mutableStateOf<String?>(null) }
+    var backendExpanded by remember { mutableStateOf(false) }
+    val supportedBackends = settings.lc0BackendOptions
+    val defaultBackendChoices = listOf("cpu", "gpu", "opencl", "metal")
+    val backendChoices = remember(supportedBackends) {
+        (if (supportedBackends.isEmpty()) {
+            defaultBackendChoices
+        } else {
+            supportedBackends.toList()
+        }).distinct()
+    }
 
     LaunchedEffect(Unit) {
         leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
@@ -42,12 +55,32 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     }
 
     // Save settings when changed
-    LaunchedEffect(selectedEngine, selectedBoardOrientation, leelaNodes, leelaThreads, leelaBackend, stockfishDepth) {
+    LaunchedEffect(
+        selectedEngine,
+        selectedBoardOrientation,
+        leelaNodes,
+        leelaThreads,
+        leelaBackend,
+        stockfishDepth,
+        supportedBackends
+    ) {
+        val trimmedBackend = leelaBackend.trim().ifEmpty { "cpu" }
+        val backendSupported = supportedBackends.isEmpty() ||
+            supportedBackends.any { it.equals(trimmedBackend, ignoreCase = true) }
+        val validatedBackend = if (backendSupported) trimmedBackend else "cpu"
+        backendValidationMessage = if (!backendSupported) {
+            "Backend not supported by this engine build. Falling back to CPU."
+        } else {
+            null
+        }
+        if (validatedBackend != leelaBackend) {
+            leelaBackend = validatedBackend
+        }
         settings.engineType = selectedEngine
         settings.boardOrientation = selectedBoardOrientation
         settings.leelaNodes = leelaNodes.toIntOrNull() ?: 1000
         settings.lc0Threads = leelaThreads.toIntOrNull() ?: 2
-        settings.lc0Backend = leelaBackend
+        settings.lc0Backend = validatedBackend
         settings.stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
     }
 
@@ -160,18 +193,61 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            OutlinedTextField(
-                                value = leelaBackend,
-                                onValueChange = { leelaBackend = it },
-                                label = { Text("NN backend (e.g. cpu)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = leelaBackend,
+                                    onValueChange = { leelaBackend = it },
+                                    label = { Text("NN backend") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    trailingIcon = {
+                                        IconButton(onClick = { backendExpanded = !backendExpanded }) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowDropDown,
+                                                contentDescription = "Backend options"
+                                            )
+                                        }
+                                    }
+                                )
+                                DropdownMenu(
+                                    expanded = backendExpanded,
+                                    onDismissRequest = { backendExpanded = false },
+                                    modifier = Modifier
+                                        .width((LocalConfiguration.current.screenWidthDp - 32).dp)
+                                ) {
+                                    backendChoices.forEach { backend ->
+                                        DropdownMenuItem(
+                                            onClick = {
+                                                leelaBackend = backend
+                                                backendExpanded = false
+                                            }
+                                        ) {
+                                            Text(backend)
+                                        }
+                                    }
+                                }
+                            }
                             Text(
-                                text = "Set to cpu unless you bundle a GPU backend.",
+                                text = "GPU, OpenCL, or Metal backends require compatible engine builds and drivers.",
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
+                            backendValidationMessage?.let { message ->
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = message,
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.error
+                                )
+                            }
+                            if (supportedBackends.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Supported backends: ${supportedBackends.joinToString(", ")}",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
 
                         EngineType.STOCKFISH -> {
@@ -372,6 +448,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         engine = selectedEngine,
                         boardOrientation = selectedBoardOrientation,
                         leelaNodes = leelaNodes.toIntOrNull() ?: 1000,
+                        leelaBackend = leelaBackend,
                         stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
                     )
                 }
@@ -494,6 +571,7 @@ private fun SettingsSummary(
     engine: EngineType,
     boardOrientation: ChessColor,
     leelaNodes: Int,
+    leelaBackend: String,
     stockfishDepth: Int
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -503,7 +581,7 @@ private fun SettingsSummary(
         )
         Text(
             text = if (engine == EngineType.LEELA_CHESS_ZERO)
-                "Nodes: $leelaNodes"
+                "Nodes: $leelaNodes • Backend: ${leelaBackend.ifBlank { "cpu" }}"
             else
                 "Depth: $stockfishDepth",
             style = MaterialTheme.typography.body2

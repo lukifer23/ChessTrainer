@@ -33,6 +33,10 @@ class Settings(context: Context) {
         get() = preferences.getString("lc0_backend", "cpu")!!
         set(value) = preferences.edit().putString("lc0_backend", value).apply()
 
+    var lc0BackendOptions: Set<String>
+        get() = preferences.getStringSet("lc0_backend_options", emptySet()) ?: emptySet()
+        set(value) = preferences.edit().putStringSet("lc0_backend_options", value).apply()
+
     var boardOrientation: ChessColor
         get() = ChessColor.valueOf(preferences.getString("board_orientation", ChessColor.WHITE.name)!!)
         set(value) = preferences.edit().putString("board_orientation", value.name).apply()
