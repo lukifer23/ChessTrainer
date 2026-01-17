@@ -8,12 +8,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.chesstrainer.chess.GameState
 import com.chesstrainer.chess.Move
 import com.chesstrainer.chess.MoveValidator
 import com.chesstrainer.chess.Square
 import com.chesstrainer.chess.Color
+import com.chesstrainer.utils.Settings
 
 private data class LessonExercise(
     val id: String,
@@ -33,6 +35,8 @@ private data class LessonModule(
 
 @Composable
 fun LessonsScreen(onNavigateBack: () -> Unit) {
+    val context = LocalContext.current
+    val settings = remember { Settings(context) }
     val modules = remember {
         listOf(
             LessonModule(
@@ -174,7 +178,10 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             selectedModule.exercises.forEach { exercise ->
-                LessonExerciseCard(exercise = exercise)
+                LessonExerciseCard(
+                    exercise = exercise,
+                    boardOrientation = settings.boardOrientation
+                )
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
@@ -211,7 +218,10 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun LessonExerciseCard(exercise: LessonExercise) {
+private fun LessonExerciseCard(
+    exercise: LessonExercise,
+    boardOrientation: Color
+) {
     var gameState by remember(exercise.id) { mutableStateOf(GameState.fromFen(exercise.fen)) }
     var selectedSquare by remember(exercise.id) { mutableStateOf<Square?>(null) }
     var availableMoves by remember(exercise.id) { mutableStateOf<List<Move>>(emptyList()) }
@@ -334,7 +344,7 @@ private fun LessonExerciseCard(exercise: LessonExercise) {
                 lastMove = lastMove,
                 draggedPiece = draggedPiece,
                 dragOffset = dragOffset,
-                boardOrientation = Color.WHITE,
+                boardOrientation = boardOrientation,
                 onSquareClick = { square -> onSquareClick(square) },
                 onDragStart = { square -> onDragStart(square) },
                 onDragEnd = { square -> onDragEnd(square) },
