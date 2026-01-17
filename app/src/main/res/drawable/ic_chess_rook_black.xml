@@ -1,33 +1,9 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <!-- Battlements -->
+    android:viewportWidth="448.0"
+    android:viewportHeight="512.0">
   <path
-      android:fillColor="#000000"
-      android:pathData="M8,2 L10,2 L10,4 L8,4 Z M11,2 L13,2 L13,4 L11,4 Z M14,2 L16,2 L16,4 L14,4 Z"
-      android:strokeColor="#FFFFFF"
-      android:strokeWidth="0.5"/>
-  <!-- Body -->
-  <path
-      android:fillColor="#000000"
-      android:pathData="M9,4 L15,4 L15,8 L9,8 Z"
-      android:strokeColor="#FFFFFF"
-      android:strokeWidth="0.5"/>
-  <path
-      android:fillColor="#000000"
-      android:pathData="M10,8 L14,8 L14,12 L10,12 Z"
-      android:strokeColor="#FFFFFF"
-      android:strokeWidth="0.5"/>
-  <path
-      android:fillColor="#000000"
-      android:pathData="M8,12 L16,12 L15,14 L9,14 Z"
-      android:strokeColor="#FFFFFF"
-      android:strokeWidth="0.5"/>
-  <path
-      android:fillColor="#000000"
-      android:pathData="M10,14 L14,14 L13,16 L11,16 Z"
-      android:strokeColor="#FFFFFF"
-      android:strokeWidth="0.5"/>
+      android:fillColor="#2B2B2B"
+      android:pathData="M32 192L32 48c0-8.8 7.2-16 16-16l64 0c8.8 0 16 7.2 16 16l0 40c0 4.4 3.6 8 8 8l32 0c4.4 0 8-3.6 8-8l0-40c0-8.8 7.2-16 16-16l64 0c8.8 0 16 7.2 16 16l0 40c0 4.4 3.6 8 8 8l32 0c4.4 0 8-3.6 8-8l0-40c0-8.8 7.2-16 16-16l64 0c8.8 0 16 7.2 16 16l0 144c0 10.1-4.7 19.6-12.8 25.6L352 256l16 144L80 400 96 256 44.8 217.6C36.7 211.6 32 202.1 32 192zm176 96l32 0c8.8 0 16-7.2 16-16l0-48c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 48c0 8.8 7.2 16 16 16zM22.6 473.4L64 432l320 0 41.4 41.4c4.2 4.2 6.6 10 6.6 16c0 12.5-10.1 22.6-22.6 22.6L38.6 512C26.1 512 16 501.9 16 489.4c0-6 2.4-11.8 6.6-16z"/>
 </vector>
