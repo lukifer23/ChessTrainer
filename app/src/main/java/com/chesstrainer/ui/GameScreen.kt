@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstrainer.chess.*
+import com.chesstrainer.state.GameSessionState
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.delay
@@ -59,6 +60,7 @@ fun GameScreen(
             if (MoveValidator.isValidMove(gameState.board, move, gameState)) {
                 val newGameState = gameState.makeMove(move)
                 gameState = newGameState
+                GameSessionState.currentGameState = newGameState
                 lastMove = move
                 selectedSquare = null
                 availableMoves = emptyList()
@@ -213,6 +215,7 @@ fun GameScreen(
                     gameMode = GameMode.HUMAN_VS_ENGINE
                     currentEngine = settings.engineType
                     gameStarted = true
+                    GameSessionState.currentGameState = gameState
                     showBoard = true
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
@@ -227,6 +230,7 @@ fun GameScreen(
                     gameMode = GameMode.ENGINE_VS_ENGINE
                     currentEngine = settings.engineType
                     gameStarted = true
+                    GameSessionState.currentGameState = gameState
                     showBoard = true
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
@@ -240,6 +244,7 @@ fun GameScreen(
                 onClick = {
                     gameMode = GameMode.FREE_PLAY
                     gameStarted = true
+                    GameSessionState.currentGameState = gameState
                     showBoard = true
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
@@ -411,6 +416,7 @@ fun GameScreen(
                         Button(
                             onClick = {
                                 gameState = GameState()
+                                GameSessionState.currentGameState = GameState()
                                 selectedSquare = null
                                 availableMoves = emptyList()
                                 lastMove = null
@@ -451,6 +457,7 @@ fun GameScreen(
                     TextButton(onClick = {
                         showGameOverDialog = false
                         gameState = GameState()
+                        GameSessionState.currentGameState = GameState()
                         selectedSquare = null
                         availableMoves = emptyList()
                         lastMove = null

@@ -1,0 +1,42 @@
+{
+  "lessons": [
+    {
+      "id": "opening-initiative",
+      "title": "Opening Initiative",
+      "description": "Develop quickly and seize the center.",
+      "steps": [
+        {
+          "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "prompt": "Black to move. Find the best response to 1.e4.",
+          "bestMove": "c7c5",
+          "explanation": "The Sicilian Defense challenges the center and fights for initiative."
+        },
+        {
+          "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+          "prompt": "Black to move. Continue developing while attacking the center.",
+          "bestMove": "d7d6",
+          "explanation": "Solidly supports ...d6 and prepares ...Nf6."
+        }
+      ]
+    },
+    {
+      "id": "tactics-fork",
+      "title": "Knight Fork Tactics",
+      "description": "Spot forcing forks that win material.",
+      "steps": [
+        {
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/3P1N2/PPP2PPP/RNBQKB1R w KQkq - 2 3",
+          "prompt": "White to move. Find the tactical strike.",
+          "bestMove": "f3e5",
+          "explanation": "Ne5 forks the queen and the c6 knight."
+        },
+        {
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4N3/4P3/3P4/PPP2PPP/RNBQKB1R b KQkq - 0 3",
+          "prompt": "Black to move. Find the best defense.",
+          "bestMove": "g8f6",
+          "explanation": "Developing reduces the immediate pressure and prepares counterplay."
+        }
+      ]
+    }
+  ]
+}
