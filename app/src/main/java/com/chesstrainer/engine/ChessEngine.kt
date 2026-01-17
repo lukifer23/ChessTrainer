@@ -6,7 +6,11 @@ import kotlin.math.max
 import kotlin.math.min
 
 interface ChessEngine {
-    fun getBestMove(gameState: GameState, callback: (Move) -> Unit)
+    fun getBestMove(
+        gameState: GameState,
+        callback: (Move) -> Unit,
+        onError: (Throwable) -> Unit = {}
+    )
     fun startNewGame()
     fun cleanup()
 }
@@ -14,7 +18,11 @@ interface ChessEngine {
 class SimpleChessEngine : ChessEngine {
     private var searchDepth = 3
 
-    override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
+    override fun getBestMove(
+        gameState: GameState,
+        callback: (Move) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
         // Use minimax algorithm to find the best move
         val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
 

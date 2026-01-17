@@ -58,7 +58,9 @@ class EngineManager(
     /**
      * Start the chess engine process
      */
-    suspend fun startEngine(): Result<Unit> = mutex.withLock {
+    suspend fun startEngine(
+        onStatusUpdate: (String) -> Unit = {}
+    ): Result<Unit> = mutex.withLock {
         try {
             android.util.Log.d("EngineManager", "Starting engine: ${settings.engineType}")
             val currentProcess = process
@@ -69,7 +71,7 @@ class EngineManager(
 
             // Ensure engine binary (and weights, if needed) are installed
             android.util.Log.d("EngineManager", "Ensuring engine is installed")
-            val engineAssets = installer.ensureInstalled(settings.engineType)
+            val engineAssets = installer.ensureInstalled(settings.engineType, onStatusUpdate)
             engineAssets.fold(
                 onSuccess = { assets ->
                     android.util.Log.d("EngineManager", "Engine assets: ${assets.engineBinary.absolutePath}")

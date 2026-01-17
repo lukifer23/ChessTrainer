@@ -2,6 +2,7 @@ package com.chesstrainer.ui
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -19,9 +20,8 @@ import com.chesstrainer.data.GameRepository
 import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
-import com.chesstrainer.engine.EngineInstaller
-import com.chesstrainer.engine.StockfishEngine
 import com.chesstrainer.engine.LeelaEngine
+import com.chesstrainer.engine.StockfishEngine
 import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
@@ -30,8 +30,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -63,7 +61,6 @@ fun GameScreen(
     val context = LocalContext.current
     val settings = remember { Settings(context) }
     val repository = remember { GameRepository(context.applicationContext) }
-    val engineInstaller = remember { EngineInstaller(context) }
     val stockfishEngine = remember { StockfishEngine(context, settings) }
     val leelaEngine = remember { LeelaEngine(context, settings) }
 
@@ -80,12 +77,13 @@ fun GameScreen(
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
     var hasRecordedGame by remember { mutableStateOf(false) }
-    var pendingEngineStatus by remember { mutableStateOf<EngineInstaller.EngineStatus?>(null) }
-    var showEngineMissingDialog by remember { mutableStateOf(false) }
     var engineStartupError by remember { mutableStateOf<String?>(null) }
     var engineReady by remember { mutableStateOf(false) }
     var engineStartupInProgress by remember { mutableStateOf(false) }
+    var engineStartupStatus by remember { mutableStateOf<String?>(null) }
+    var engineInitAttempt by remember { mutableStateOf(0) }
     val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()) }
+    val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -145,17 +143,13 @@ fun GameScreen(
         showBoard = true
         engineReady = !requiresEngine(mode)
         engineStartupError = null
-
+        engineStartupStatus = null
+        if (requiresEngine(mode)) {
+            engineInitAttempt += 1
+        }
     }
 
     fun handleEngineRequiredStart(mode: GameMode) {
-        val status = engineInstaller.getStatus(settings.engineType)
-        val engineAvailable = status.engineAvailable && status.weightsAvailable
-        if (!engineAvailable) {
-            pendingEngineStatus = status
-            showEngineMissingDialog = true
-            return
-        }
         startGameWithMode(mode)
     }
 
@@ -272,18 +266,41 @@ fun GameScreen(
     }
 
     // Initialize engines when game starts
-    LaunchedEffect(gameStarted, gameMode, currentEngine) {
-        if (gameStarted && requiresEngine(gameMode) && !engineReady && !engineStartupInProgress) {
-            engineStartupInProgress = true
-            engineStartupError = null
-
-            // Mark engine as ready for engine games - engines initialize lazily on first move
-            engineReady = true
+    LaunchedEffect(gameStarted, gameMode, currentEngine, engineInitAttempt) {
+        if (!gameStarted || !requiresEngine(gameMode)) {
             engineStartupInProgress = false
+            engineStartupStatus = null
+            return@LaunchedEffect
+        }
+        if (engineReady || engineStartupInProgress) {
+            return@LaunchedEffect
+        }
+
+        engineStartupInProgress = true
+        engineStartupError = null
+        engineStartupStatus = "Preparing engine..."
+        engineReady = false
+
+        val engine = when (currentEngine) {
+            EngineType.STOCKFISH -> stockfishEngine
+            EngineType.LEELA_CHESS_ZERO -> leelaEngine
+        }
+
+        val result = engine.initialize { status ->
+            coroutineScope.launch(Dispatchers.Main) {
+                engineStartupStatus = status
+            }
+        }
+        engineStartupInProgress = false
+        result.onSuccess {
+            engineReady = true
+            engineStartupStatus = null
+        }.onFailure { error ->
+            engineReady = false
+            engineStartupStatus = null
+            engineStartupError = error.message ?: "Engine initialization failed."
         }
     }
-
-    val coroutineScope = rememberCoroutineScope()
 
     // Engine move logic using actual chess engines
     LaunchedEffect(gameState.currentPlayer, gameMode, currentEngine) {
@@ -297,18 +314,26 @@ fun GameScreen(
             kotlinx.coroutines.delay(1000)
 
             android.util.Log.d("GameScreen", "Engine ${currentEngine} is thinking for ${gameState.currentPlayer}")
-            engine.getBestMove(gameState) { move ->
-                coroutineScope.launch(Dispatchers.Main) {
-                    try {
-                        android.util.Log.d("GameScreen", "Engine making move: $move")
-                        makeMove(move)
-                    } catch (e: Exception) {
-                        // Handle any errors from makeMove on main thread
-                        android.util.Log.e("GameScreen", "Error making engine move", e)
-                        // Fallback: skip the engine move and let human play
+            engine.getBestMove(
+                gameState = gameState,
+                callback = { move ->
+                    coroutineScope.launch(Dispatchers.Main) {
+                        try {
+                            android.util.Log.d("GameScreen", "Engine making move: $move")
+                            makeMove(move)
+                        } catch (e: Exception) {
+                            // Handle any errors from makeMove on main thread
+                            android.util.Log.e("GameScreen", "Error making engine move", e)
+                        }
+                    }
+                },
+                onError = { error ->
+                    coroutineScope.launch(Dispatchers.Main) {
+                        engineStartupError = error.message ?: "Engine failed while thinking."
+                        engineReady = false
                     }
                 }
-            }
+            )
         }
     }
 
@@ -458,181 +483,243 @@ fun GameScreen(
         }
     } else if (showBoard) {
         // Interactive chess board
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colors.background)
         ) {
-            // Top status bar
-            Card(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                elevation = 4.dp
+                    .fillMaxSize()
+                    .background(MaterialTheme.colors.background)
             ) {
-                Row(
+                // Top status bar
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    elevation = 4.dp
                 ) {
-                    // Game mode and engine info
-                    Column {
-                        Text(
-                            text = when (gameMode) {
-                                GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
-                                GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
-                                GameMode.FREE_PLAY -> "Free Play"
-                            },
-                            style = MaterialTheme.typography.subtitle1,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                        Text(
-                            text = when (currentEngine) {
-                                EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes/move"
-                                EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth}"
-                            },
-                            style = MaterialTheme.typography.caption,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Game mode and engine info
+                        Column {
+                            Text(
+                                text = when (gameMode) {
+                                    GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()}"
+                                    GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()} vs ${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()}"
+                                    GameMode.FREE_PLAY -> "Free Play"
+                                },
+                                style = MaterialTheme.typography.subtitle1,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                            Text(
+                                text = when (currentEngine) {
+                                    EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes/move"
+                                    EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth}"
+                                },
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
 
-                    // Action buttons
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
-                            onClick = { undoMove() },
-                            modifier = Modifier.size(36.dp),
-                            enabled = gameState.moveHistory.isNotEmpty() && !gameState.isGameOver()
+                        // Action buttons
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            IconButton(
+                                onClick = { undoMove() },
+                                modifier = Modifier.size(36.dp),
+                                enabled = gameState.moveHistory.isNotEmpty() && !gameState.isGameOver()
+                            ) {
+                                Text("↶", fontSize = 18.sp)
+                            }
+                            IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {
+                                Text("📄", fontSize = 18.sp)
+                            }
+                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
+                                Text("⚙", fontSize = 18.sp)
+                            }
+                            IconButton(onClick = onNavigateToAnalysis, modifier = Modifier.size(36.dp)) {
+                                Text("📊", fontSize = 18.sp)
+                            }
+                            IconButton(onClick = onNavigateToLessons, modifier = Modifier.size(36.dp)) {
+                                Text("📚", fontSize = 18.sp)
+                            }
+                            IconButton(onClick = onNavigateToScorecard, modifier = Modifier.size(36.dp)) {
+                                Text("🏆", fontSize = 18.sp)
+                            }
+                        }
+                    }
+                }
+
+                // Chess board
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ChessBoard(
+                        gameState = gameState,
+                        selectedSquare = selectedSquare,
+                        availableMoves = availableMoves,
+                        lastMove = lastMove,
+                        draggedPiece = draggedPiece,
+                        dragOffset = dragOffset,
+                        boardOrientation = settings.boardOrientation,
+                        onSquareClick = ::onSquareClick,
+                        onDragStart = ::onDragStart,
+                        onDragEnd = ::onDragEnd
+                    )
+                }
+
+                // Game status and controls
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    elevation = 4.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        // Current player indicator and status
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("↶", fontSize = 18.sp)
+                            Column {
+                                Text(
+                                    text = when {
+                                        gameState.isGameOver() -> gameOverMessage
+                                        gameState.currentPlayer == Color.WHITE -> "⚪ White to move"
+                                        else -> "⚫ Black to move"
+                                    },
+                                    style = MaterialTheme.typography.h6,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
+                                    Text(
+                                        text = "🔴 Check!",
+                                        color = androidx.compose.ui.graphics.Color.Red,
+                                        style = MaterialTheme.typography.body2,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // Game statistics
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "Move ${gameState.fullMoveNumber}",
+                                    style = MaterialTheme.typography.body2
+                                )
+                                Text(
+                                    text = "${gameState.moveHistory.size} ply",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
                         }
-                        IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {
-                            Text("📄", fontSize = 18.sp)
-                        }
-                        IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
-                            Text("⚙", fontSize = 18.sp)
-                        }
-                        IconButton(onClick = onNavigateToAnalysis, modifier = Modifier.size(36.dp)) {
-                            Text("📊", fontSize = 18.sp)
-                        }
-                        IconButton(onClick = onNavigateToLessons, modifier = Modifier.size(36.dp)) {
-                            Text("📚", fontSize = 18.sp)
-                        }
-                        IconButton(onClick = onNavigateToScorecard, modifier = Modifier.size(36.dp)) {
-                            Text("🏆", fontSize = 18.sp)
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Game control buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    gameState = GameState()
+                                    selectedSquare = null
+                                    availableMoves = emptyList()
+                                    lastMove = null
+                                    draggedPiece = null
+                                    dragOffset = Offset.Zero
+                                    hasRecordedGame = false
+                                    if (requiresEngine(gameMode) && !engineReady) {
+                                        engineStartupError = null
+                                        engineStartupStatus = null
+                                        engineInitAttempt += 1
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("🔄 New Game")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    gameStarted = false
+                                    showBoard = false
+                                    hasRecordedGame = false
+                                    engineReady = false
+                                    engineStartupError = null
+                                    engineStartupStatus = null
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("⬅️ Back")
+                            }
                         }
                     }
                 }
             }
 
-            // Chess board
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                ChessBoard(
-                    gameState = gameState,
-                    selectedSquare = selectedSquare,
-                    availableMoves = availableMoves,
-                    lastMove = lastMove,
-                    draggedPiece = draggedPiece,
-                    dragOffset = dragOffset,
-                    boardOrientation = settings.boardOrientation,
-                    onSquareClick = ::onSquareClick,
-                    onDragStart = ::onDragStart,
-                    onDragEnd = ::onDragEnd
-                )
-            }
-
-            // Game status and controls
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                elevation = 4.dp
-            ) {
-                Column(
+            if (requiresEngine(gameMode) && (!engineReady || engineStartupInProgress)) {
+                val statusText = engineStartupStatus ?: "Preparing engine..."
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colors.background.copy(alpha = 0.9f))
+                        .clickable { },
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Current player indicator and status
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Card(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth()
                     ) {
-                        Column {
-                            Text(
-                                text = when {
-                                    gameState.isGameOver() -> gameOverMessage
-                                    gameState.currentPlayer == Color.WHITE -> "⚪ White to move"
-                                    else -> "⚫ Black to move"
-                                },
-                                style = MaterialTheme.typography.h6,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
-                                Text(
-                                    text = "🔴 Check!",
-                                    color = androidx.compose.ui.graphics.Color.Red,
-                                    style = MaterialTheme.typography.body2,
-                                    fontWeight = FontWeight.Bold
-                                )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (engineStartupInProgress) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
-                        }
-
-                        // Game statistics
-                        Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Move ${gameState.fullMoveNumber}",
-                                style = MaterialTheme.typography.body2
+                                text = statusText,
+                                style = MaterialTheme.typography.body1,
+                                fontWeight = FontWeight.Medium
                             )
-                            Text(
-                                text = "${gameState.moveHistory.size} ply",
-                                style = MaterialTheme.typography.caption,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Game control buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                gameState = GameState()
-                                selectedSquare = null
-                                availableMoves = emptyList()
-                                lastMove = null
-                                draggedPiece = null
-                                dragOffset = Offset.Zero
-                                hasRecordedGame = false
-                                engineReady = !requiresEngine(gameMode)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("🔄 New Game")
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                gameStarted = false
-                                showBoard = false
-                                hasRecordedGame = false
-                                engineReady = false
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("⬅️ Back")
+                            engineStartupError?.let { error ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = error,
+                                    color = MaterialTheme.colors.error,
+                                    style = MaterialTheme.typography.body2
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                OutlinedButton(onClick = {
+                                    engineStartupError = null
+                                    engineStartupStatus = null
+                                    engineInitAttempt += 1
+                                }) {
+                                    Text("Retry")
+                                }
+                            }
                         }
                     }
                 }
@@ -660,43 +747,13 @@ fun GameScreen(
                         draggedPiece = null
                         dragOffset = Offset.Zero
                         hasRecordedGame = false
-                        engineReady = !requiresEngine(gameMode)
+                        if (requiresEngine(gameMode) && !engineReady) {
+                            engineStartupError = null
+                            engineStartupStatus = null
+                            engineInitAttempt += 1
+                        }
                     }) {
                         Text("New Game")
-                    }
-                }
-            }
-        )
-    }
-
-    if (showEngineMissingDialog) {
-        val status = pendingEngineStatus
-        AlertDialog(
-            onDismissRequest = { showEngineMissingDialog = false },
-            title = { Text("Engine Required") },
-            text = {
-                Text(
-                    status?.let {
-                        "${it.engineType.name.lowercase().replace("_", " ").capitalize()} is not ready. " +
-                            "Status: ${it.statusMessage}. Install the engine in Settings to start."
-                    } ?: "Selected engine is not installed. Install it in Settings to start."
-                )
-            },
-            buttons = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = {
-                        showEngineMissingDialog = false
-                    }) {
-                        Text("Cancel")
-                    }
-                    TextButton(onClick = {
-                        showEngineMissingDialog = false
-                        onNavigateToSettings()
-                    }) {
-                        Text("Go to Settings")
                     }
                 }
             }
