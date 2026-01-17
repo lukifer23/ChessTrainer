@@ -55,6 +55,7 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
         scope.launch {
             try {
                 ensureInitialized()
+                engineManager?.cancelActiveSearch()
                 engineManager?.newGame()
             } catch (e: Exception) {
                 // Log error but don't throw
