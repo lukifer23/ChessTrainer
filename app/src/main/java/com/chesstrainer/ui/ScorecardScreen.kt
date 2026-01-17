@@ -31,6 +31,7 @@ import java.util.Locale
 fun ScorecardScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val repository = remember { GameRepository(context.applicationContext) }
+    val games by repository.games.collectAsState(initial = emptyList())
     val results by repository.results.collectAsState(initial = emptyList())
     val ratings by repository.ratings.collectAsState(initial = emptyList())
 
@@ -39,6 +40,9 @@ fun ScorecardScreen(onNavigateBack: () -> Unit) {
     val draws = results.count { it.outcome == PlayerOutcome.DRAW.name }
     val latestRating = ratings.lastOrNull()?.ratingAfter ?: 1200
     val formatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
+    val analysisDepthLookup = remember(results) {
+        results.associateBy({ it.gameId }, { it.analysisDepth })
+    }
 
     Column(
         modifier = Modifier
@@ -102,6 +106,35 @@ fun ScorecardScreen(onNavigateBack: () -> Unit) {
                         ) {
                             Text(formatter.format(Date(rating.recordedAt)))
                             Text("${rating.ratingAfter} (${rating.delta})")
+                        }
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = 4.dp
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Recent Games", style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                if (games.isEmpty()) {
+                    Text("No games recorded yet.")
+                } else {
+                    games.take(10).forEach { game ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = formatter.format(Date(game.playedAt)),
+                                style = MaterialTheme.typography.body2,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text("Mode: ${game.mode.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }}")
+                            Text("Result: ${game.result.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }}")
+                            Text("Engine: ${game.engineType} (${game.engineConfig})")
+                            Text("Time Control: ${game.timeControl}")
+                            Text("Analysis Depth: ${analysisDepthLookup[game.id] ?: "N/A"}")
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }

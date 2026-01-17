@@ -53,6 +53,32 @@ private fun requiresEngine(mode: GameMode): Boolean {
     return mode != GameMode.FREE_PLAY
 }
 
+private val stockfishDepthRatingTable = listOf(
+    4 to 800,
+    8 to 1100,
+    12 to 1400,
+    15 to 1600,
+    18 to 1800,
+    20 to 1950,
+    22 to 2100,
+    24 to 2250
+)
+
+private val leelaNodesRatingTable = listOf(
+    100 to 900,
+    500 to 1200,
+    1000 to 1400,
+    2000 to 1600,
+    5000 to 1850,
+    10000 to 2100,
+    20000 to 2300
+)
+
+private fun ratingFromTable(setting: Int, table: List<Pair<Int, Int>>): Int {
+    val sorted = table.sortedBy { it.first }
+    return sorted.lastOrNull { setting >= it.first }?.second ?: sorted.first().second
+}
+
 @Composable
 fun GameScreen(
     onNavigateToSettings: () -> Unit,
@@ -233,8 +259,26 @@ fun GameScreen(
                     GameMode.FREE_PLAY -> 1200
                     GameMode.HUMAN_VS_ENGINE,
                     GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
-                        EngineType.STOCKFISH -> 1600
-                        EngineType.LEELA_CHESS_ZERO -> 1700
+                        EngineType.STOCKFISH -> ratingFromTable(settings.stockfishDepth, stockfishDepthRatingTable)
+                        EngineType.LEELA_CHESS_ZERO -> ratingFromTable(settings.leelaNodes, leelaNodesRatingTable)
+                    }
+                }
+                val timeControl = "No clock"
+                val engineConfig = when (gameMode) {
+                    GameMode.FREE_PLAY -> "None"
+                    GameMode.HUMAN_VS_ENGINE,
+                    GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
+                        EngineType.STOCKFISH -> "Depth ${settings.stockfishDepth}"
+                        EngineType.LEELA_CHESS_ZERO ->
+                            "Nodes ${settings.leelaNodes} • Threads ${settings.lc0Threads} • ${settings.lc0Backend.uppercase()}"
+                    }
+                }
+                val analysisDepth = when (gameMode) {
+                    GameMode.FREE_PLAY -> "N/A"
+                    GameMode.HUMAN_VS_ENGINE,
+                    GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
+                        EngineType.STOCKFISH -> "Depth ${settings.stockfishDepth}"
+                        EngineType.LEELA_CHESS_ZERO -> "Nodes ${settings.leelaNodes}"
                     }
                 }
                 val timestamp = System.currentTimeMillis()
@@ -252,13 +296,16 @@ fun GameScreen(
                         playedAt = timestamp,
                         mode = gameMode.name,
                         engineType = engineLabel,
+                        engineConfig = engineConfig,
+                        timeControl = timeControl,
                         result = gameState.gameResult.name,
                         moves = moveList.joinToString(" "),
                         moveCount = gameState.moveHistory.size
                     ),
                     result = GameResultEntity(
                         outcome = outcome.name,
-                        score = score
+                        score = score,
+                        analysisDepth = analysisDepth
                     ),
                     rating = PlayerRatingEntity(
                         ratingBefore = latestRating,

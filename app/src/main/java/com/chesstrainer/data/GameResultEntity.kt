@@ -22,5 +22,6 @@ data class GameResultEntity(
     val id: Long = 0,
     val gameId: Long = 0,
     val outcome: String,
-    val score: Double
+    val score: Double,
+    val analysisDepth: String
 )
