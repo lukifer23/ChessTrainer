@@ -98,13 +98,16 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
         engineManager?.configureEngine()
 
         // Leela-specific configuration
-        val options = listOf(
+        val weightsPath = engineManager?.getLc0WeightsFile()?.absolutePath
+        val options = mutableListOf(
             "MaxNodes" to (settings.leelaNodes.takeIf { it > 0 } ?: 1000),
             "Threads" to Runtime.getRuntime().availableProcessors(),
             "NNCacheSize" to 200000, // Neural network cache size
             "Backend" to "eigen", // CPU backend for Android
-            "WeightsFile" to "" // Use default weights
         )
+        if (!weightsPath.isNullOrBlank()) {
+            options.add("WeightsFile" to weightsPath)
+        }
 
         for ((option, value) in options) {
             try {

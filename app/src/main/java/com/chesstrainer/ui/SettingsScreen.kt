@@ -33,6 +33,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     var leelaStatus by remember { mutableStateOf(installer.getStatus(EngineType.LEELA_CHESS_ZERO)) }
     var stockfishStatus by remember { mutableStateOf(installer.getStatus(EngineType.STOCKFISH)) }
     var installMessage by remember { mutableStateOf<String?>(null) }
+    var installError by remember { mutableStateOf(false) }
+    var isInstalling by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
@@ -228,12 +230,19 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         OutlinedButton(
                             onClick = {
                                 installMessage = null
+                                installError = false
+                                isInstalling = true
                                 coroutineScope.launch {
-                                    val result = installer.ensureInstalled(EngineType.LEELA_CHESS_ZERO)
+                                    val result = installer.ensureInstalled(EngineType.LEELA_CHESS_ZERO) { message ->
+                                        installMessage = message
+                                    }
                                     leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
+                                    installError = result.isFailure
                                     installMessage = result.exceptionOrNull()?.message ?: "LeelaChess0 ready."
+                                    isInstalling = false
                                 }
-                            }
+                            },
+                            enabled = !isInstalling
                         ) {
                             Text("Install LeelaChess0")
                         }
@@ -251,12 +260,19 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         OutlinedButton(
                             onClick = {
                                 installMessage = null
+                                installError = false
+                                isInstalling = true
                                 coroutineScope.launch {
-                                    val result = installer.ensureInstalled(EngineType.STOCKFISH)
+                                    val result = installer.ensureInstalled(EngineType.STOCKFISH) { message ->
+                                        installMessage = message
+                                    }
                                     stockfishStatus = installer.getStatus(EngineType.STOCKFISH)
+                                    installError = result.isFailure
                                     installMessage = result.exceptionOrNull()?.message ?: "Stockfish ready."
+                                    isInstalling = false
                                 }
-                            }
+                            },
+                            enabled = !isInstalling
                         ) {
                             Text("Install Stockfish")
                         }
@@ -266,7 +282,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         Text(
                             text = message,
                             style = MaterialTheme.typography.body2,
-                            color = if (message.contains("ready", ignoreCase = true)) {
+                            color = if (!installError) {
                                 MaterialTheme.colors.primary
                             } else {
                                 MaterialTheme.colors.error

@@ -198,6 +198,8 @@ class EngineManager(
      */
     fun isReady(): Boolean = isEngineReady && process?.let { !isProcessTerminated(it as java.lang.Process) } == true
 
+    fun getLc0WeightsFile(): File? = lc0WeightsFile
+
     /**
      * Start a new game
      */
