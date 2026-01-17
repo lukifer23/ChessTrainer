@@ -13,18 +13,26 @@
         {
           "id": "openings-1",
           "title": "Claim the center",
-          "prompt": "Choose a central pawn advance that stakes space and opens development.",
+          "prompt": "Play 1.e4 and follow up with development after Black responds.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "expectedMoves": ["e2e4", "d2d4"],
-          "explanation": "Great start! Central pawns open lines for the bishops and queen."
+          "solutionLine": ["e2e4", "e7e5", "g1f3"],
+          "explanation": "Great start! Central pawns open lines for the bishops and queen.",
+          "scorePerMove": 10,
+          "maxScore": 30,
+          "minEval": 20,
+          "maxMistake": 150
         },
         {
           "id": "openings-2",
           "title": "Develop a minor piece",
-          "prompt": "Bring a knight into play without moving the same piece twice.",
+          "prompt": "Develop the kingside knight and meet Black's reply.",
           "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
-          "expectedMoves": ["g1f3", "b1c3"],
-          "explanation": "Perfect! Knights develop naturally to f3 or c3."
+          "solutionLine": ["g1f3", "b8c6"],
+          "explanation": "Perfect! Knights develop naturally to f3 or c3.",
+          "scorePerMove": 10,
+          "maxScore": 20,
+          "minEval": 0,
+          "maxMistake": 200
         }
       ]
     },
@@ -43,16 +51,24 @@
           "title": "Mate in one",
           "prompt": "Find the immediate checkmate against the exposed king.",
           "fen": "6k1/5Q2/6K1/8/8/8/8/8 w - - 0 1",
-          "expectedMoves": ["f7g7"],
-          "explanation": "Mate! The queen covers all escape squares with Qg7#."
+          "solutionLine": ["f7g7"],
+          "explanation": "Mate! The queen covers all escape squares with Qg7#.",
+          "scorePerMove": 15,
+          "maxScore": 15,
+          "minEval": 800,
+          "maxMistake": 50
         },
         {
           "id": "tactics-2",
           "title": "Win the queen",
           "prompt": "Play the skewer that wins material.",
           "fen": "4k3/8/4q3/8/4Q3/8/4K3/8 w - - 0 1",
-          "expectedMoves": ["e4c6"],
-          "explanation": "Nice! Qc6+ forces the queen to block, winning it next."
+          "solutionLine": ["e4c6"],
+          "explanation": "Nice! Qc6+ forces the queen to block, winning it next.",
+          "scorePerMove": 12,
+          "maxScore": 12,
+          "minEval": 200,
+          "maxMistake": 120
         }
       ]
     },
@@ -71,16 +87,24 @@
           "title": "Advance the passer",
           "prompt": "Push the passed pawn to gain ground while your king supports.",
           "fen": "8/8/4k3/8/4P3/4K3/8/8 w - - 0 1",
-          "expectedMoves": ["e4e5"],
-          "explanation": "Great! The pawn advance gains space and limits the king."
+          "solutionLine": ["e4e5"],
+          "explanation": "Great! The pawn advance gains space and limits the king.",
+          "scorePerMove": 10,
+          "maxScore": 10,
+          "minEval": 50,
+          "maxMistake": 120
         },
         {
           "id": "endgames-2",
           "title": "Activate the king",
-          "prompt": "Centralize your king to support the pawn race.",
+          "prompt": "Centralize your king toward d4 to support the pawn race.",
           "fen": "8/4k3/8/8/8/4K3/4P3/8 w - - 0 1",
-          "expectedMoves": ["e3d4", "e3f4"],
-          "explanation": "Nice king move! Centralizing helps escort the pawn."
+          "solutionLine": ["e3d4"],
+          "explanation": "Nice king move! Centralizing helps escort the pawn.",
+          "scorePerMove": 10,
+          "maxScore": 10,
+          "minEval": 30,
+          "maxMistake": 150
         }
       ]
     }

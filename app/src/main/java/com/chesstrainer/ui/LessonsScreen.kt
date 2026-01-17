@@ -17,8 +17,13 @@ import com.chesstrainer.chess.MoveValidator
 import com.chesstrainer.chess.Square
 import com.chesstrainer.chess.Color
 import com.chesstrainer.data.LessonExercise
+import com.chesstrainer.data.LessonExerciseProgress
 import com.chesstrainer.data.LessonModule
 import com.chesstrainer.data.LessonRepository
+import com.chesstrainer.engine.LeelaEngine
+import com.chesstrainer.engine.StockfishEngine
+import com.chesstrainer.engine.UCIParser
+import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.launch
 
@@ -27,10 +32,13 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val settings = remember { Settings(context) }
     val repository = remember { LessonRepository(context) }
+    val stockfishEngine = remember { StockfishEngine(context, settings) }
+    val leelaEngine = remember { LeelaEngine(context, settings) }
     val modules by produceState<List<LessonModule>>(initialValue = emptyList(), repository) {
         value = repository.loadModules()
     }
     val completedExercises by repository.observeCompletedExercises().collectAsState(initial = emptySet())
+    val exerciseProgress by repository.observeExerciseProgress().collectAsState(initial = emptyMap())
     val coroutineScope = rememberCoroutineScope()
 
     var selectedModuleIndex by remember { mutableStateOf(0) }
@@ -40,6 +48,34 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
         }
     }
     val selectedModule = modules.getOrNull(selectedModuleIndex)
+
+    DisposableEffect(Unit) {
+        onDispose {
+            stockfishEngine.cleanup()
+            leelaEngine.cleanup()
+        }
+    }
+
+    val analysisProvider: suspend (GameState) -> LessonAnalysis? = { state ->
+        when (settings.engineType) {
+            EngineType.STOCKFISH -> {
+                stockfishEngine.getAnalysis(state).getOrNull()?.firstOrNull()?.let { analysis ->
+                    LessonAnalysis(
+                        bestMove = analysis.principalVariation.firstOrNull(),
+                        score = analysis.score
+                    )
+                }
+            }
+            EngineType.LEELA_CHESS_ZERO -> {
+                leelaEngine.getAnalysis(state).getOrNull()?.let { analysis ->
+                    LessonAnalysis(
+                        bestMove = analysis.bestMove,
+                        score = analysis.evaluation
+                    )
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -117,9 +153,11 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
                         boardOrientation = settings.boardOrientation,
                         isCompleted = isCompleted,
                         isLocked = isLocked,
-                        onExerciseCompleted = { id ->
+                        exerciseProgress = exerciseProgress[exercise.id],
+                        analysisProvider = analysisProvider,
+                        onExerciseCompleted = { id, score ->
                             coroutineScope.launch {
-                                repository.markExerciseCompleted(id)
+                                repository.markExerciseCompleted(id, score)
                             }
                         }
                     )
@@ -165,12 +203,18 @@ private fun LessonExerciseCard(
     boardOrientation: Color,
     isCompleted: Boolean,
     isLocked: Boolean,
-    onExerciseCompleted: (String) -> Unit
+    exerciseProgress: LessonExerciseProgress?,
+    analysisProvider: suspend (GameState) -> LessonAnalysis?,
+    onExerciseCompleted: (String, Int) -> Unit
 ) {
     var gameState by remember(exercise.id) { mutableStateOf(GameState.fromFen(exercise.fen)) }
     var selectedSquare by remember(exercise.id) { mutableStateOf<Square?>(null) }
     var availableMoves by remember(exercise.id) { mutableStateOf<List<Move>>(emptyList()) }
     var lastMove by remember(exercise.id) { mutableStateOf<Move?>(null) }
+    var currentStep by remember(exercise.id, exerciseProgress?.completed) {
+        mutableStateOf(if (exerciseProgress?.completed == true) exercise.solutionLine.size else 0)
+    }
+    var score by remember(exercise.id, exerciseProgress?.score) { mutableStateOf(exerciseProgress?.score ?: 0) }
     var feedback by remember(exercise.id, isLocked) {
         mutableStateOf(
             if (isLocked) {
@@ -182,12 +226,16 @@ private fun LessonExerciseCard(
     }
     var draggedPiece by remember(exercise.id) { mutableStateOf<Square?>(null) }
     var dragOffset by remember(exercise.id) { mutableStateOf(Offset.Zero) }
+    var isEvaluating by remember(exercise.id) { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     fun resetExercise() {
         gameState = GameState.fromFen(exercise.fen)
         selectedSquare = null
         availableMoves = emptyList()
         lastMove = null
+        currentStep = 0
+        score = 0
         feedback = if (isLocked) {
             "Complete the previous exercise to unlock this lesson."
         } else {
@@ -195,27 +243,75 @@ private fun LessonExerciseCard(
         }
         draggedPiece = null
         dragOffset = Offset.Zero
+        isEvaluating = false
     }
 
     fun makeMove(move: Move) {
-        if (isLocked) return
+        if (isLocked || isEvaluating) return
         if (MoveValidator.isValidMove(gameState.board, move, gameState)) {
-            val newState = gameState.makeMove(move)
-            gameState = newState
-            lastMove = move
-            selectedSquare = null
-            availableMoves = emptyList()
-            draggedPiece = null
-            dragOffset = Offset.Zero
-
-            val isCorrect = exercise.expectedMoves.contains(move.uci)
-            feedback = if (isCorrect) {
-                exercise.explanation
-            } else {
-                "Not quite. Try a different move or reset the position."
-            }
-            if (isCorrect) {
-                onExerciseCompleted(exercise.id)
+            coroutineScope.launch {
+                isEvaluating = true
+                feedback = "Checking your move..."
+                val playerColor = gameState.currentPlayer
+                val expectedMove = exercise.solutionLine.getOrNull(currentStep)
+                val analysisBefore = analysisProvider(gameState)
+                val bestScore = toCentipawns(
+                    analysisBefore?.score,
+                    perspective = playerColor,
+                    sideToMove = gameState.currentPlayer
+                )
+                val newState = gameState.makeMove(move)
+                val analysisAfter = analysisProvider(newState)
+                val moveScore = toCentipawns(
+                    analysisAfter?.score,
+                    perspective = playerColor,
+                    sideToMove = newState.currentPlayer
+                )
+                val evalOk = isEvaluationAcceptable(
+                    moveScore = moveScore,
+                    bestScore = bestScore,
+                    minEval = exercise.minEval,
+                    maxMistake = exercise.maxMistake
+                )
+                val isCorrect = expectedMove != null && expectedMove == move.uci && evalOk
+                if (isCorrect) {
+                    val updatedScore = (score + exercise.scorePerMove).coerceAtMost(exercise.resolvedMaxScore())
+                    score = updatedScore
+                    val newStep = currentStep + 1
+                    currentStep = newStep
+                    gameState = newState
+                    lastMove = move
+                    selectedSquare = null
+                    availableMoves = emptyList()
+                    draggedPiece = null
+                    dragOffset = Offset.Zero
+                    feedback = if (newStep >= exercise.solutionLine.size) {
+                        onExerciseCompleted(exercise.id, updatedScore)
+                        "Exercise complete! Score: $updatedScore/${exercise.resolvedMaxScore()}"
+                    } else {
+                        "Good move! Step $newStep/${exercise.solutionLine.size}."
+                    }
+                } else {
+                    val reason = buildString {
+                        if (expectedMove == null) {
+                            append("This exercise has no solution line.")
+                        } else if (expectedMove != move.uci) {
+                            append("That move doesn't match the lesson line.")
+                        } else {
+                            append("That move doesn't meet the evaluation target.")
+                        }
+                        if (exercise.minEval != null || exercise.maxMistake != null) {
+                            append(" ")
+                            append(formatEvalHint(moveScore, bestScore, exercise.minEval, exercise.maxMistake))
+                        }
+                    }
+                    feedback = reason
+                }
+                selectedSquare = null
+                availableMoves = emptyList()
+                draggedPiece = null
+                dragOffset = Offset.Zero
+                isEvaluating = false
             }
         }
     }
@@ -233,7 +329,7 @@ private fun LessonExerciseCard(
     }
 
     fun onDragStart(square: Square) {
-        if (isLocked) return
+        if (isLocked || isEvaluating) return
         val piece = gameState.board.getPiece(square)
         if (piece != null && piece.color == gameState.currentPlayer) {
             draggedPiece = square
@@ -247,7 +343,7 @@ private fun LessonExerciseCard(
     }
 
     fun onDragEnd(dropSquare: Square?) {
-        if (isLocked) return
+        if (isLocked || isEvaluating) return
         if (draggedPiece == null) return
 
         if (dropSquare != null) {
@@ -269,7 +365,7 @@ private fun LessonExerciseCard(
     }
 
     fun onSquareClick(square: Square) {
-        if (isLocked) return
+        if (isLocked || isEvaluating) return
         if (draggedPiece != null) {
             onDragEnd(square)
             return
@@ -305,7 +401,7 @@ private fun LessonExerciseCard(
             ) {
                 Text(text = exercise.title, style = MaterialTheme.typography.subtitle1)
                 val statusText = when {
-                    isCompleted -> "Completed"
+                    isCompleted -> "Completed (${exerciseProgress?.score ?: score}/${exercise.resolvedMaxScore()})"
                     isLocked -> "Locked"
                     else -> "In progress"
                 }
@@ -323,6 +419,14 @@ private fun LessonExerciseCard(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = exercise.prompt)
+            if (exercise.solutionLine.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val displayStep = currentStep.coerceAtMost(exercise.solutionLine.size)
+                Text(
+                    text = "Step $displayStep/${exercise.solutionLine.size}",
+                    style = MaterialTheme.typography.caption
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             ChessBoard(
                 gameState = gameState,
@@ -346,10 +450,61 @@ private fun LessonExerciseCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { resetExercise() }, enabled = !isLocked) {
+                TextButton(onClick = { resetExercise() }, enabled = !isLocked && !isEvaluating) {
                     Text("Reset")
                 }
             }
         }
     }
+}
+
+private data class LessonAnalysis(
+    val bestMove: Move?,
+    val score: UCIParser.Score?
+)
+
+private fun toCentipawns(
+    score: UCIParser.Score?,
+    perspective: Color,
+    sideToMove: Color
+): Int? {
+    val raw = when {
+        score?.mate != null -> if (score.mate > 0) 100000 else -100000
+        score?.centipawns != null -> score.centipawns
+        else -> null
+    } ?: return null
+    return if (sideToMove == perspective) raw else -raw
+}
+
+private fun isEvaluationAcceptable(
+    moveScore: Int?,
+    bestScore: Int?,
+    minEval: Int?,
+    maxMistake: Int?
+): Boolean {
+    if (minEval != null && moveScore != null && moveScore < minEval) return false
+    if (maxMistake != null && moveScore != null && bestScore != null) {
+        val drop = bestScore - moveScore
+        if (drop > maxMistake) return false
+    }
+    return true
+}
+
+private fun formatEvalHint(
+    moveScore: Int?,
+    bestScore: Int?,
+    minEval: Int?,
+    maxMistake: Int?
+): String {
+    val parts = mutableListOf<String>()
+    if (moveScore != null) {
+        parts.add("Eval: ${moveScore}cp")
+    }
+    if (minEval != null) {
+        parts.add("Min target: ${minEval}cp")
+    }
+    if (maxMistake != null && bestScore != null) {
+        parts.add("Best: ${bestScore}cp (max drop ${maxMistake}cp)")
+    }
+    return parts.joinToString(" · ")
 }
