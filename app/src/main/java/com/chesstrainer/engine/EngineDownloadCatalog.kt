@@ -24,6 +24,7 @@ object EngineDownloadCatalog {
         )
     )
 
+    // LC0 Android releases ship a PIE CLI binary named liblc0.so inside the APK container.
     val lc0Downloads: Map<String, EngineInstaller.EngineDownloadSpec> = mapOf(
         "arm64-v8a" to EngineInstaller.EngineDownloadSpec(
             url = "https://github.com/LeelaChessZero/lc0/releases/download/v0.32.1/lc0-v0.32.1-android.apk",
@@ -31,7 +32,7 @@ object EngineDownloadCatalog {
             fileName = "lc0",
             archiveType = EngineInstaller.ArchiveType.ZIP,
             archiveEntryPath = "lib/arm64-v8a/liblc0.so",
-            label = "LC0 0.32.1 (arm64-v8a)"
+            label = "LC0 0.32.1 CLI (arm64-v8a)"
         ),
         "armeabi-v7a" to EngineInstaller.EngineDownloadSpec(
             url = "https://github.com/LeelaChessZero/lc0/releases/download/v0.32.1/lc0-v0.32.1-android.apk",
@@ -39,7 +40,7 @@ object EngineDownloadCatalog {
             fileName = "lc0",
             archiveType = EngineInstaller.ArchiveType.ZIP,
             archiveEntryPath = "lib/armeabi-v7a/liblc0.so",
-            label = "LC0 0.32.1 (armeabi-v7a)"
+            label = "LC0 0.32.1 CLI (armeabi-v7a)"
         )
     )
 

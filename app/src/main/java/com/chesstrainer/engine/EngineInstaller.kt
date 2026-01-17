@@ -46,7 +46,7 @@ class EngineInstaller(private val context: Context) {
     fun getStatus(engineType: EngineType): EngineStatus {
         val abi = findSupportedAbi(engineType)
         val engineFile = abi?.let { resolveEngineBinary(engineType, it) }
-        val engineAvailable = engineFile?.let { it.exists() && it.canExecute() } == true
+        val engineAvailable = engineFile?.let { isExecutableBinary(it) } == true
         val weightsFile = if (engineType == EngineType.LEELA_CHESS_ZERO) {
             resolveWeightsFile()
         } else {
@@ -81,11 +81,14 @@ class EngineInstaller(private val context: Context) {
                 ?: return@withContext Result.failure(Exception("No download spec configured for $engineType/$abi."))
             val engineBinary = resolveEngineBinary(engineType, abi)
 
-            if (!engineBinary.exists() || !engineBinary.canExecute()) {
+            if (!engineBinary.exists() || !engineBinary.canExecute() || !isExecutableBinary(engineBinary)) {
                 onStatusUpdate("Downloading ${engineSpec.label}...")
                 downloadAndVerify(engineSpec, engineBinary, onStatusUpdate)
                 if (!engineBinary.setExecutable(true)) {
                     return@withContext Result.failure(Exception("Failed to mark engine binary executable."))
+                }
+                if (!isExecutableBinary(engineBinary)) {
+                    return@withContext Result.failure(Exception("Downloaded engine binary is not executable."))
                 }
             }
 
@@ -323,6 +326,32 @@ class EngineInstaller(private val context: Context) {
             }
         }
         return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+    }
+
+    private fun isExecutableBinary(file: File): Boolean {
+        if (!file.exists() || !file.canExecute()) {
+            return false
+        }
+        return try {
+            file.inputStream().use { input ->
+                val header = ByteArray(20)
+                val read = input.read(header)
+                if (read < header.size) {
+                    return false
+                }
+                val isElf = header[0] == 0x7f.toByte() &&
+                    header[1] == 'E'.code.toByte() &&
+                    header[2] == 'L'.code.toByte() &&
+                    header[3] == 'F'.code.toByte()
+                if (!isElf) {
+                    return false
+                }
+                val type = (header[16].toInt() and 0xff) or ((header[17].toInt() and 0xff) shl 8)
+                type == 2 || type == 3
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun stockfishDownloadSpecs(): Map<String, EngineDownloadSpec> {
