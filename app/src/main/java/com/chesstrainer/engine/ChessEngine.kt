@@ -6,7 +6,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 interface ChessEngine {
-    fun getBestMove(gameState: GameState, callback: (Move) -> Unit)
+    fun getBestMove(gameState: GameState, onBestMove: (Move) -> Unit, onError: (String) -> Unit)
     fun startNewGame()
     fun cleanup()
 }
@@ -14,29 +14,33 @@ interface ChessEngine {
 class SimpleChessEngine : ChessEngine {
     private var searchDepth = 3
 
-    override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
-        // Use minimax algorithm to find the best move
-        val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
+    override fun getBestMove(gameState: GameState, onBestMove: (Move) -> Unit, onError: (String) -> Unit) {
+        try {
+            // Use minimax algorithm to find the best move
+            val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
 
-        if (legalMoves.isEmpty()) {
-            callback(Move(Square(0, 0), Square(0, 0))) // Invalid move, should not happen
-            return
-        }
-
-        var bestMove = legalMoves.first()
-        var bestScore = Int.MIN_VALUE
-
-        for (move in legalMoves) {
-            val newGameState = gameState.makeMove(move)
-            val score = -minimax(newGameState, searchDepth - 1, Int.MIN_VALUE, Int.MAX_VALUE)
-
-            if (score > bestScore) {
-                bestScore = score
-                bestMove = move
+            if (legalMoves.isEmpty()) {
+                onError("No legal moves available.")
+                return
             }
-        }
 
-        callback(bestMove)
+            var bestMove = legalMoves.first()
+            var bestScore = Int.MIN_VALUE
+
+            for (move in legalMoves) {
+                val newGameState = gameState.makeMove(move)
+                val score = -minimax(newGameState, searchDepth - 1, Int.MIN_VALUE, Int.MAX_VALUE)
+
+                if (score > bestScore) {
+                    bestScore = score
+                    bestMove = move
+                }
+            }
+
+            onBestMove(bestMove)
+        } catch (e: Exception) {
+            onError("Engine error: ${e.message}")
+        }
     }
 
     override fun startNewGame() {

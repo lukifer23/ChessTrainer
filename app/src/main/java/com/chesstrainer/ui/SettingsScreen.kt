@@ -27,9 +27,11 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     var selectedEngine by remember { mutableStateOf(settings.engineType) }
     var selectedBoardOrientation by remember { mutableStateOf(settings.boardOrientation) }
     var leelaNodes by remember { mutableStateOf(settings.leelaNodes.toString()) }
+    var leelaMoveTime by remember { mutableStateOf(settings.leelaMoveTimeMs.toString()) }
     var leelaThreads by remember { mutableStateOf(settings.lc0Threads.toString()) }
     var leelaBackend by remember { mutableStateOf(settings.lc0Backend) }
     var stockfishDepth by remember { mutableStateOf(settings.stockfishDepth.toString()) }
+    var stockfishMoveTime by remember { mutableStateOf(settings.stockfishMoveTimeMs.toString()) }
     var leelaStatus by remember { mutableStateOf(installer.getStatus(EngineType.LEELA_CHESS_ZERO)) }
     var stockfishStatus by remember { mutableStateOf(installer.getStatus(EngineType.STOCKFISH)) }
     var installMessage by remember { mutableStateOf<String?>(null) }
@@ -40,13 +42,24 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     }
 
     // Save settings when changed
-    LaunchedEffect(selectedEngine, selectedBoardOrientation, leelaNodes, leelaThreads, leelaBackend, stockfishDepth) {
+    LaunchedEffect(
+        selectedEngine,
+        selectedBoardOrientation,
+        leelaNodes,
+        leelaMoveTime,
+        leelaThreads,
+        leelaBackend,
+        stockfishDepth,
+        stockfishMoveTime
+    ) {
         settings.engineType = selectedEngine
         settings.boardOrientation = selectedBoardOrientation
         settings.leelaNodes = leelaNodes.toIntOrNull() ?: 1000
+        settings.leelaMoveTimeMs = leelaMoveTime.toIntOrNull() ?: 3000
         settings.lc0Threads = leelaThreads.toIntOrNull() ?: 2
         settings.lc0Backend = leelaBackend
         settings.stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
+        settings.stockfishMoveTimeMs = stockfishMoveTime.toIntOrNull() ?: 2000
     }
 
     Column(
@@ -144,6 +157,21 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
+                                value = leelaMoveTime,
+                                onValueChange = {
+                                    leelaMoveTime = it.filter { char -> char.isDigit() }
+                                },
+                                label = { Text("Move time (ms)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Lower values = faster play (500-5000)",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
                                 value = leelaThreads,
                                 onValueChange = {
                                     leelaThreads = it.filter { char -> char.isDigit() }
@@ -191,6 +219,21 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             )
                             Text(
                                 text = "Higher values = stronger play but slower moves (10-25)",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = stockfishMoveTime,
+                                onValueChange = {
+                                    stockfishMoveTime = it.filter { char -> char.isDigit() }
+                                },
+                                label = { Text("Move time (ms)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Lower values = faster play (500-5000)",
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )

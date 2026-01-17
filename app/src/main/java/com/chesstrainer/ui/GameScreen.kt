@@ -17,10 +17,15 @@ import com.chesstrainer.data.GameRepository
 import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
+import com.chesstrainer.engine.ChessEngine
+import com.chesstrainer.engine.LeelaEngine
+import com.chesstrainer.engine.StockfishEngine
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 enum class GameMode {
     HUMAN_VS_ENGINE,
@@ -60,6 +65,23 @@ fun GameScreen(
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
     var hasRecordedGame by remember { mutableStateOf(false) }
+    var engineErrorMessage by remember { mutableStateOf<String?>(null) }
+    val engineRequestToken = remember { AtomicInteger(0) }
+
+    val engine: ChessEngine = remember(currentEngine) {
+        when (currentEngine) {
+            EngineType.STOCKFISH -> StockfishEngine(context, settings)
+            EngineType.LEELA_CHESS_ZERO -> LeelaEngine(context, settings)
+        }
+    }
+    val uiScope = rememberCoroutineScope()
+
+    DisposableEffect(engine) {
+        onDispose {
+            engineRequestToken.incrementAndGet()
+            engine.cleanup()
+        }
+    }
 
     fun makeMove(move: Move) {
         try {
@@ -158,20 +180,40 @@ fun GameScreen(
         }
     }
 
-    // Engine move logic (simplified - just make random legal moves for demo)
-    LaunchedEffect(gameState.currentPlayer, gameMode) {
+    // Engine move logic using selected engine
+    LaunchedEffect(
+        gameState.currentPlayer,
+        gameState.positionHashes.last(),
+        gameMode,
+        currentEngine
+    ) {
         if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode)) {
-            kotlinx.coroutines.delay(1000) // Delay for better UX
+            val requestToken = engineRequestToken.incrementAndGet()
+            val requestedGameState = gameState
+            engineErrorMessage = null
 
-            try {
-                val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
-                if (legalMoves.isNotEmpty()) {
-                    val randomMove = legalMoves.random()
-                    makeMove(randomMove)
-                }
-            } catch (e: Exception) {
-                // Ignore errors for now
+            delay(800) // Delay for better UX
+
+            if (requestToken != engineRequestToken.get()) {
+                return@LaunchedEffect
             }
+
+            engine.getBestMove(
+                gameState = requestedGameState,
+                onBestMove = { move ->
+                    uiScope.launch {
+                        if (requestToken != engineRequestToken.get()) return@launch
+                        makeMove(move)
+                    }
+                },
+                onError = { message ->
+                    uiScope.launch {
+                        if (requestToken == engineRequestToken.get()) {
+                            engineErrorMessage = message
+                        }
+                    }
+                }
+            )
         }
     }
 
@@ -361,8 +403,8 @@ fun GameScreen(
                         )
                         Text(
                             text = when (currentEngine) {
-                                EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes/move"
-                                EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth}"
+                                EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes • ${settings.leelaMoveTimeMs}ms"
+                                EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth} • ${settings.stockfishMoveTimeMs}ms"
                             },
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
@@ -449,6 +491,14 @@ fun GameScreen(
                                     color = androidx.compose.ui.graphics.Color.Red,
                                     style = MaterialTheme.typography.body2,
                                     fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (engineErrorMessage != null) {
+                                Text(
+                                    text = "⚠️ ${engineErrorMessage ?: ""}",
+                                    color = MaterialTheme.colors.error,
+                                    style = MaterialTheme.typography.caption
                                 )
                             }
                         }

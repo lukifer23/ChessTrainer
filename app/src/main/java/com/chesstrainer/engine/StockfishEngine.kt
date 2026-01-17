@@ -23,26 +23,27 @@ class StockfishEngine(private val context: Context, private val settings: Settin
 
     private var isInitialized = false
 
-    override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
+    override fun getBestMove(gameState: GameState, onBestMove: (Move) -> Unit, onError: (String) -> Unit) {
         scope.launch {
             try {
                 ensureInitialized()
 
                 val searchParams = EngineManager.SearchParams(
                     depth = settings.stockfishDepth.takeIf { it > 0 },
-                    moveTime = 2000L // 2 second default move time
+                    moveTime = settings.stockfishMoveTimeMs.takeIf { it > 0 }?.toLong()
                 )
 
                 engineManager?.startSearch(
                     gameState = gameState,
                     onBestMove = { move ->
-                        callback(move)
+                        onBestMove(move)
                     },
                     searchParams = searchParams
                 )
             } catch (e: Exception) {
+                onError("Stockfish error: ${e.message ?: "Unknown error"}")
                 // Fallback to simple engine if Stockfish fails
-                SimpleChessEngine().getBestMove(gameState, callback)
+                SimpleChessEngine().getBestMove(gameState, onBestMove, onError)
             }
         }
     }

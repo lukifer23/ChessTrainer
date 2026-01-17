@@ -21,9 +21,17 @@ class Settings(context: Context) {
         get() = preferences.getInt("leela_nodes", 1000)
         set(value) = preferences.edit().putInt("leela_nodes", value).apply()
 
+    var leelaMoveTimeMs: Int
+        get() = preferences.getInt("leela_move_time_ms", 3000)
+        set(value) = preferences.edit().putInt("leela_move_time_ms", value).apply()
+
     var stockfishDepth: Int
         get() = preferences.getInt("stockfish_depth", 15)
         set(value) = preferences.edit().putInt("stockfish_depth", value).apply()
+
+    var stockfishMoveTimeMs: Int
+        get() = preferences.getInt("stockfish_move_time_ms", 2000)
+        set(value) = preferences.edit().putInt("stockfish_move_time_ms", value).apply()
 
     var lc0Threads: Int
         get() = preferences.getInt("lc0_threads", 2)

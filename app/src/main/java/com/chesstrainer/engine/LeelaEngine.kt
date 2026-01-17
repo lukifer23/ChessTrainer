@@ -21,26 +21,27 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
 
     private var isInitialized = false
 
-    override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
+    override fun getBestMove(gameState: GameState, onBestMove: (Move) -> Unit, onError: (String) -> Unit) {
         scope.launch {
             try {
                 ensureInitialized()
 
                 val searchParams = EngineManager.SearchParams(
                     nodes = settings.leelaNodes.takeIf { it > 0 }?.toLong(),
-                    moveTime = 3000L // 3 second default for neural network evaluation
+                    moveTime = settings.leelaMoveTimeMs.takeIf { it > 0 }?.toLong()
                 )
 
                 engineManager?.startSearch(
                     gameState = gameState,
                     onBestMove = { move ->
-                        callback(move)
+                        onBestMove(move)
                     },
                     searchParams = searchParams
                 )
             } catch (e: Exception) {
+                onError("LeelaChess0 error: ${e.message ?: "Unknown error"}")
                 // Fallback to simple engine if Leela fails
-                SimpleChessEngine().getBestMove(gameState, callback)
+                SimpleChessEngine().getBestMove(gameState, onBestMove, onError)
             }
         }
     }
