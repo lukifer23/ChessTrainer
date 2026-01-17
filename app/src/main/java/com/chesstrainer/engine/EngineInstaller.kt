@@ -12,10 +12,19 @@ import java.net.URL
 import java.security.MessageDigest
 
 class EngineInstaller(private val context: Context) {
+    enum class ArchiveType {
+        NONE,
+        TAR,
+        ZIP
+    }
+
     data class EngineDownloadSpec(
         val url: String,
         val sha256: String,
-        val fileName: String
+        val fileName: String,
+        val archiveType: ArchiveType = ArchiveType.NONE,
+        val archiveEntryPath: String? = null,
+        val label: String
     )
 
     data class InstalledAssets(
@@ -60,7 +69,10 @@ class EngineInstaller(private val context: Context) {
         )
     }
 
-    suspend fun ensureInstalled(engineType: EngineType): Result<InstalledAssets> = withContext(Dispatchers.IO) {
+    suspend fun ensureInstalled(
+        engineType: EngineType,
+        onStatusUpdate: (String) -> Unit = {}
+    ): Result<InstalledAssets> = withContext(Dispatchers.IO) {
         try {
             baseDir.mkdirs()
             val abi = findSupportedAbi(engineType)
@@ -70,7 +82,8 @@ class EngineInstaller(private val context: Context) {
             val engineBinary = resolveEngineBinary(engineType, abi)
 
             if (!engineBinary.exists() || !engineBinary.canExecute()) {
-                downloadAndVerify(engineSpec, engineBinary)
+                onStatusUpdate("Downloading ${engineSpec.label}...")
+                downloadAndVerify(engineSpec, engineBinary, onStatusUpdate)
                 if (!engineBinary.setExecutable(true)) {
                     return@withContext Result.failure(Exception("Failed to mark engine binary executable."))
                 }
@@ -81,7 +94,8 @@ class EngineInstaller(private val context: Context) {
                     ?: return@withContext Result.failure(Exception("No LC0 weights download spec configured."))
                 val targetWeights = resolveWeightsFile()
                 if (!targetWeights.exists()) {
-                    downloadAndVerify(weightsSpec, targetWeights)
+                    onStatusUpdate("Downloading ${weightsSpec.label}...")
+                    downloadAndVerify(weightsSpec, targetWeights, onStatusUpdate)
                 }
                 targetWeights
             } else {
@@ -129,28 +143,123 @@ class EngineInstaller(private val context: Context) {
         }
     }
 
-    private fun downloadAndVerify(spec: EngineDownloadSpec, targetFile: File) {
+    private fun downloadAndVerify(
+        spec: EngineDownloadSpec,
+        targetFile: File,
+        onStatusUpdate: (String) -> Unit
+    ) {
         targetFile.parentFile?.mkdirs()
         val tempFile = File(targetFile.parentFile, "${targetFile.name}.download")
-        URL(spec.url).openStream().use { input ->
+        val connection = URL(spec.url).openConnection()
+        val contentLength = connection.contentLengthLong
+        var bytesRead = 0L
+        var lastProgress = -1
+        connection.getInputStream().use { input ->
             FileOutputStream(tempFile).use { output ->
-                copyWithDigest(input, output)
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var read = input.read(buffer)
+                while (read >= 0) {
+                    if (read > 0) {
+                        output.write(buffer, 0, read)
+                        bytesRead += read
+                        if (contentLength > 0) {
+                            val progress = ((bytesRead * 100) / contentLength).toInt()
+                            if (progress != lastProgress && progress % 5 == 0) {
+                                onStatusUpdate("Downloading ${spec.label}... $progress%")
+                                lastProgress = progress
+                            }
+                        }
+                    }
+                    read = input.read(buffer)
+                }
             }
         }
+        onStatusUpdate("Verifying ${spec.label}...")
         val actualHash = sha256(tempFile)
         if (!actualHash.equals(spec.sha256, ignoreCase = true)) {
             tempFile.delete()
             throw IllegalStateException("Checksum mismatch for ${spec.url}")
         }
-        if (targetFile.exists()) {
-            targetFile.delete()
+        if (spec.archiveType == ArchiveType.NONE) {
+            if (targetFile.exists()) {
+                targetFile.delete()
+            }
+            if (!tempFile.renameTo(targetFile)) {
+                throw IllegalStateException("Failed to move downloaded file into place.")
+            }
+            return
         }
-        if (!tempFile.renameTo(targetFile)) {
-            throw IllegalStateException("Failed to move downloaded file into place.")
+        try {
+            extractArchiveEntry(spec, tempFile, targetFile)
+        } finally {
+            tempFile.delete()
         }
     }
 
-    private fun copyWithDigest(input: InputStream, output: FileOutputStream) {
+    private fun extractArchiveEntry(spec: EngineDownloadSpec, archiveFile: File, targetFile: File) {
+        val entryPath = spec.archiveEntryPath
+            ?: throw IllegalArgumentException("Missing archive entry path for ${spec.label}.")
+        when (spec.archiveType) {
+            ArchiveType.TAR -> extractTarEntry(archiveFile, entryPath, targetFile)
+            ArchiveType.ZIP -> extractZipEntry(archiveFile, entryPath, targetFile)
+            ArchiveType.NONE -> Unit
+        }
+    }
+
+    private fun extractZipEntry(archiveFile: File, entryPath: String, targetFile: File) {
+        java.util.zip.ZipInputStream(archiveFile.inputStream()).use { zipInput ->
+            var entry = zipInput.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory && entry.name == entryPath) {
+                    targetFile.outputStream().use { output ->
+                        copyStream(zipInput, output)
+                    }
+                    return
+                }
+                entry = zipInput.nextEntry
+            }
+        }
+        throw IllegalStateException("Archive entry not found: $entryPath")
+    }
+
+    private fun extractTarEntry(archiveFile: File, entryPath: String, targetFile: File) {
+        archiveFile.inputStream().use { input ->
+            val header = ByteArray(512)
+            while (true) {
+                if (!readFully(input, header)) {
+                    break
+                }
+                if (header.all { it == 0.toByte() }) {
+                    break
+                }
+                val name = header.copyOfRange(0, 100).toString(Charsets.US_ASCII).trimEnd('\u0000')
+                val sizeText = header.copyOfRange(124, 136)
+                    .toString(Charsets.US_ASCII)
+                    .trim()
+                    .trim('\u0000')
+                val size = sizeText.toLongOrNull(8) ?: 0L
+                if (name == entryPath) {
+                    targetFile.outputStream().use { output ->
+                        copyExact(input, output, size)
+                    }
+                    val padding = (512 - (size % 512)) % 512
+                    if (padding > 0) {
+                        skipFully(input, padding)
+                    }
+                    return
+                } else {
+                    skipFully(input, size)
+                    val padding = (512 - (size % 512)) % 512
+                    if (padding > 0) {
+                        skipFully(input, padding)
+                    }
+                }
+            }
+        }
+        throw IllegalStateException("Archive entry not found: $entryPath")
+    }
+
+    private fun copyStream(input: InputStream, output: FileOutputStream) {
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         var read = input.read(buffer)
         while (read >= 0) {
@@ -158,6 +267,46 @@ class EngineInstaller(private val context: Context) {
                 output.write(buffer, 0, read)
             }
             read = input.read(buffer)
+        }
+    }
+
+    private fun readFully(input: InputStream, buffer: ByteArray): Boolean {
+        var offset = 0
+        while (offset < buffer.size) {
+            val read = input.read(buffer, offset, buffer.size - offset)
+            if (read == -1) {
+                return false
+            }
+            offset += read
+        }
+        return true
+    }
+
+    private fun copyExact(input: InputStream, output: FileOutputStream, length: Long) {
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var remaining = length
+        while (remaining > 0) {
+            val read = input.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+            if (read == -1) {
+                throw IllegalStateException("Unexpected end of archive while extracting.")
+            }
+            output.write(buffer, 0, read)
+            remaining -= read
+        }
+    }
+
+    private fun skipFully(input: InputStream, bytes: Long) {
+        var remaining = bytes
+        while (remaining > 0) {
+            val skipped = input.skip(remaining)
+            if (skipped <= 0) {
+                if (input.read() == -1) {
+                    break
+                }
+                remaining -= 1
+            } else {
+                remaining -= skipped
+            }
         }
     }
 
@@ -177,40 +326,14 @@ class EngineInstaller(private val context: Context) {
     }
 
     private fun stockfishDownloadSpecs(): Map<String, EngineDownloadSpec> {
-        return mapOf(
-            "arm64-v8a" to EngineDownloadSpec(
-                url = "https://example.com/engines/stockfish/android/arm64/stockfish",
-                sha256 = "REPLACE_WITH_SHA256",
-                fileName = "stockfish"
-            ),
-            "armeabi-v7a" to EngineDownloadSpec(
-                url = "https://example.com/engines/stockfish/android/armeabi-v7a/stockfish",
-                sha256 = "REPLACE_WITH_SHA256",
-                fileName = "stockfish"
-            )
-        )
+        return EngineDownloadCatalog.stockfishDownloads
     }
 
     private fun lc0DownloadSpecs(): Map<String, EngineDownloadSpec> {
-        return mapOf(
-            "arm64-v8a" to EngineDownloadSpec(
-                url = "https://example.com/engines/lc0/android/arm64/lc0",
-                sha256 = "REPLACE_WITH_SHA256",
-                fileName = "lc0"
-            ),
-            "armeabi-v7a" to EngineDownloadSpec(
-                url = "https://example.com/engines/lc0/android/armeabi-v7a/lc0",
-                sha256 = "REPLACE_WITH_SHA256",
-                fileName = "lc0"
-            )
-        )
+        return EngineDownloadCatalog.lc0Downloads
     }
 
     private fun lc0WeightsSpec(): EngineDownloadSpec? {
-        return EngineDownloadSpec(
-            url = "https://example.com/engines/lc0/networks/network.pb.gz",
-            sha256 = "REPLACE_WITH_SHA256",
-            fileName = "lc0-network.pb.gz"
-        )
+        return EngineDownloadCatalog.lc0Weights
     }
 }
