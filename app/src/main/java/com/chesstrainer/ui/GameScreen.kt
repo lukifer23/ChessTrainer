@@ -19,6 +19,8 @@ import com.chesstrainer.data.GameRepository
 import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
+import com.chesstrainer.engine.LeelaEngine
+import com.chesstrainer.engine.StockfishEngine
 import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
@@ -28,6 +30,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class GameMode {
     HUMAN_VS_ENGINE,
@@ -43,6 +46,12 @@ fun shouldEngineMove(player: com.chesstrainer.chess.Color, mode: GameMode): Bool
     }
 }
 
+private sealed class EngineStatus {
+    object Ready : EngineStatus()
+    object Loading : EngineStatus()
+    data class Error(val message: String) : EngineStatus()
+}
+
 @Composable
 fun GameScreen(
     onNavigateToSettings: () -> Unit,
@@ -53,6 +62,10 @@ fun GameScreen(
     val context = LocalContext.current
     val settings = remember { Settings(context) }
     val repository = remember { GameRepository(context.applicationContext) }
+
+    val stockfishEngine = remember { StockfishEngine(context, settings) }
+    val leelaEngine = remember { LeelaEngine(context, settings) }
+    val uiScope = rememberCoroutineScope()
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -67,7 +80,41 @@ fun GameScreen(
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
     var hasRecordedGame by remember { mutableStateOf(false) }
+    var engineStatus by remember { mutableStateOf<EngineStatus>(EngineStatus.Ready) }
+    var engineSearchToken by remember { mutableStateOf(0) }
     val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()) }
+
+    fun cancelEngineSearches() {
+        engineSearchToken += 1
+        stockfishEngine.stopSearch()
+        leelaEngine.stopSearch()
+    }
+
+    suspend fun prepareEngineForGame() {
+        if (gameMode == GameMode.FREE_PLAY) {
+            engineStatus = EngineStatus.Ready
+            return
+        }
+        engineStatus = EngineStatus.Loading
+        engineStatus = when (currentEngine) {
+            EngineType.STOCKFISH -> {
+                stockfishEngine.prepareNewGame().fold(
+                    onSuccess = { EngineStatus.Ready },
+                    onFailure = { error ->
+                        EngineStatus.Error(error.message ?: "Stockfish failed to initialize")
+                    }
+                )
+            }
+            EngineType.LEELA_CHESS_ZERO -> {
+                leelaEngine.prepareNewGame().fold(
+                    onSuccess = { EngineStatus.Ready },
+                    onFailure = { error ->
+                        EngineStatus.Error(error.message ?: "LeelaChess0 failed to initialize")
+                    }
+                )
+            }
+        }
+    }
 
     fun makeMove(move: Move) {
         try {
@@ -84,6 +131,29 @@ fun GameScreen(
             // Ignore move errors for now
             draggedPiece = null
             dragOffset = Offset.Zero
+        }
+    }
+
+    fun resetBoardState() {
+        gameState = GameState()
+        selectedSquare = null
+        availableMoves = emptyList()
+        lastMove = null
+        draggedPiece = null
+        dragOffset = Offset.Zero
+        hasRecordedGame = false
+    }
+
+    fun startNewGame() {
+        if (gameMode != GameMode.FREE_PLAY) {
+            currentEngine = settings.engineType
+        }
+        resetBoardState()
+        cancelEngineSearches()
+        stockfishEngine.startNewGame()
+        leelaEngine.startNewGame()
+        uiScope.launch {
+            prepareEngineForGame()
         }
     }
 
@@ -118,6 +188,14 @@ fun GameScreen(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(Intent.createChooser(shareIntent, "Share PGN"))
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            cancelEngineSearches()
+            stockfishEngine.cleanup()
+            leelaEngine.cleanup()
+        }
     }
 
     // Update available moves when selected square changes
@@ -199,19 +277,24 @@ fun GameScreen(
         }
     }
 
-    // Engine move logic (simplified - just make random legal moves for demo)
-    LaunchedEffect(gameState.currentPlayer, gameMode) {
-        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode)) {
-            kotlinx.coroutines.delay(1000) // Delay for better UX
+    LaunchedEffect(gameState.currentPlayer, gameMode, currentEngine, engineStatus) {
+        val isEngineReady = engineStatus is EngineStatus.Ready
+        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode) && isEngineReady) {
+            delay(1000) // Delay for better UX
 
-            try {
-                val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
-                if (legalMoves.isNotEmpty()) {
-                    val randomMove = legalMoves.random()
-                    makeMove(randomMove)
+            val searchToken = engineSearchToken
+            val stateSnapshot = gameState
+            val engine = when (currentEngine) {
+                EngineType.STOCKFISH -> stockfishEngine
+                EngineType.LEELA_CHESS_ZERO -> leelaEngine
+            }
+            engine.getBestMove(gameState) { bestMove ->
+                uiScope.launch {
+                    if (engineSearchToken != searchToken || stateSnapshot != gameState) {
+                        return@launch
+                    }
+                    makeMove(bestMove)
                 }
-            } catch (e: Exception) {
-                // Ignore errors for now
             }
         }
     }
@@ -315,6 +398,7 @@ fun GameScreen(
                     currentEngine = settings.engineType
                     gameStarted = true
                     showBoard = true
+                    startNewGame()
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -329,6 +413,7 @@ fun GameScreen(
                     currentEngine = settings.engineType
                     gameStarted = true
                     showBoard = true
+                    startNewGame()
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -342,6 +427,7 @@ fun GameScreen(
                     gameMode = GameMode.FREE_PLAY
                     gameStarted = true
                     showBoard = true
+                    startNewGame()
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -408,6 +494,23 @@ fun GameScreen(
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                         )
+                        when (val status = engineStatus) {
+                            EngineStatus.Loading -> {
+                                Text(
+                                    text = "Engine initializing...",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                            is EngineStatus.Error -> {
+                                Text(
+                                    text = status.message,
+                                    style = MaterialTheme.typography.caption,
+                                    color = androidx.compose.ui.graphics.Color.Red
+                                )
+                            }
+                            EngineStatus.Ready -> Unit
+                        }
                     }
 
                     // Action buttons
@@ -517,13 +620,7 @@ fun GameScreen(
                     ) {
                         Button(
                             onClick = {
-                                gameState = GameState()
-                                selectedSquare = null
-                                availableMoves = emptyList()
-                                lastMove = null
-                                draggedPiece = null
-                                dragOffset = Offset.Zero
-                                hasRecordedGame = false
+                                startNewGame()
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -532,6 +629,7 @@ fun GameScreen(
 
                         OutlinedButton(
                             onClick = {
+                                cancelEngineSearches()
                                 gameStarted = false
                                 showBoard = false
                                 hasRecordedGame = false
@@ -559,13 +657,7 @@ fun GameScreen(
                 ) {
                     TextButton(onClick = {
                         showGameOverDialog = false
-                        gameState = GameState()
-                        selectedSquare = null
-                        availableMoves = emptyList()
-                        lastMove = null
-                        draggedPiece = null
-                        dragOffset = Offset.Zero
-                        hasRecordedGame = false
+                        startNewGame()
                     }) {
                         Text("New Game")
                     }

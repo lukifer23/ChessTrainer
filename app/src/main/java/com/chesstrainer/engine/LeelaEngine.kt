@@ -48,11 +48,20 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
     override fun startNewGame() {
         scope.launch {
             try {
-                ensureInitialized()
-                engineManager?.newGame()
+                startNewGameInternal()
             } catch (e: Exception) {
                 // Log error but don't throw
             }
+        }
+    }
+
+    suspend fun prepareNewGame(): Result<Unit> = runCatching {
+        startNewGameInternal()
+    }
+
+    fun stopSearch() {
+        scope.launch {
+            engineManager?.stopSearch()
         }
     }
 
@@ -63,6 +72,11 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
             isInitialized = false
             scope.cancel()
         }
+    }
+
+    private suspend fun startNewGameInternal() {
+        ensureInitialized()
+        engineManager?.newGame()
     }
 
     /**
