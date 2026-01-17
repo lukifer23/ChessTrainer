@@ -67,6 +67,16 @@ class StockfishEngine(private val context: Context, private val settings: Settin
         }
     }
 
+    suspend fun getEngineManager(): Result<EngineManager> {
+        return try {
+            ensureInitialized()
+            engineManager?.let { Result.success(it) }
+                ?: Result.failure(Exception("Stockfish engine manager unavailable"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to initialize Stockfish engine: ${e.message}", e))
+        }
+    }
+
     /**
      * Ensure the engine is initialized and ready
      */

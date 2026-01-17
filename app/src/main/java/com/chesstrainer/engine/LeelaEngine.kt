@@ -65,6 +65,16 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
         }
     }
 
+    suspend fun getEngineManager(): Result<EngineManager> {
+        return try {
+            ensureInitialized()
+            engineManager?.let { Result.success(it) }
+                ?: Result.failure(Exception("LeelaChess0 engine manager unavailable"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to initialize LeelaChess0 engine: ${e.message}", e))
+        }
+    }
+
     /**
      * Ensure the engine is initialized and ready
      */

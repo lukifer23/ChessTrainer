@@ -12,9 +12,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstrainer.chess.*
+import com.chesstrainer.engine.EngineManager
+import com.chesstrainer.engine.LeelaEngine
+import com.chesstrainer.engine.StockfishEngine
+import com.chesstrainer.engine.UCIParser
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class GameMode {
@@ -40,6 +43,8 @@ fun GameScreen(
     val context = LocalContext.current
     val settings = remember { Settings(context) }
     val coroutineScope = rememberCoroutineScope()
+    val stockfishEngine = remember { StockfishEngine(context, settings) }
+    val leelaEngine = remember { LeelaEngine(context, settings) }
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -53,6 +58,22 @@ fun GameScreen(
     var showBoard by remember { mutableStateOf(false) }
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
+    var engineInfo by remember { mutableStateOf<UCIParser.EngineInfo?>(null) }
+    var engineStatusMessage by remember { mutableStateOf<String?>(null) }
+    var isEngineThinking by remember { mutableStateOf(false) }
+    var isKingInCheck by remember { mutableStateOf(false) }
+
+    fun formatScore(score: UCIParser.Score?): String {
+        return when {
+            score?.mate != null -> "Mate ${score.mate}"
+            score?.centipawns != null -> "${score.centipawns} cp"
+            else -> "--"
+        }
+    }
+
+    fun formatPv(info: UCIParser.EngineInfo?): String {
+        return info?.principalVariation?.takeIf { it.isNotEmpty() }?.joinToString(" ") { it.uci } ?: "--"
+    }
 
     fun makeMove(move: Move) {
         try {
@@ -66,7 +87,7 @@ fun GameScreen(
                 dragOffset = Offset.Zero
             }
         } catch (e: Exception) {
-            // Ignore move errors for now
+            engineStatusMessage = "Move error: ${e.message ?: "Unknown error"}"
             draggedPiece = null
             dragOffset = Offset.Zero
         }
@@ -78,10 +99,41 @@ fun GameScreen(
             try {
                 MoveValidator.generateLegalMoves(gameState.board, gameState).filter { it.from == selectedSquare }
             } catch (e: Exception) {
+                engineStatusMessage = "Move generation error: ${e.message ?: "Unknown error"}"
                 emptyList()
             }
         } else {
             emptyList()
+        }
+    }
+
+    LaunchedEffect(gameState) {
+        isKingInCheck = try {
+            MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer)
+        } catch (e: Exception) {
+            engineStatusMessage = "Check detection error: ${e.message ?: "Unknown error"}"
+            false
+        }
+    }
+
+    LaunchedEffect(currentEngine) {
+        engineStatusMessage = null
+        engineInfo = null
+        val selectedEngine = when (currentEngine) {
+            EngineType.STOCKFISH -> stockfishEngine
+            EngineType.LEELA_CHESS_ZERO -> leelaEngine
+        }
+        try {
+            selectedEngine.startNewGame()
+        } catch (e: Exception) {
+            engineStatusMessage = "Engine initialization failed: ${e.message ?: "Unknown error"}"
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            stockfishEngine.cleanup()
+            leelaEngine.cleanup()
         }
     }
 
@@ -98,19 +150,56 @@ fun GameScreen(
         }
     }
 
-    // Engine move logic (simplified - just make random legal moves for demo)
-    LaunchedEffect(gameState.currentPlayer, gameMode) {
+    // Engine move logic
+    LaunchedEffect(gameState.currentPlayer, gameMode, currentEngine) {
         if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode)) {
-            kotlinx.coroutines.delay(1000) // Delay for better UX
+            val selectedEngine = when (currentEngine) {
+                EngineType.STOCKFISH -> stockfishEngine
+                EngineType.LEELA_CHESS_ZERO -> leelaEngine
+            }
 
-            try {
-                val legalMoves = MoveValidator.generateLegalMoves(gameState.board, gameState)
-                if (legalMoves.isNotEmpty()) {
-                    val randomMove = legalMoves.random()
-                    makeMove(randomMove)
-                }
-            } catch (e: Exception) {
-                // Ignore errors for now
+            val engineManager = selectedEngine.getEngineManager().getOrElse { error ->
+                engineStatusMessage = "Engine error: ${error.message ?: "Unknown error"}"
+                return@LaunchedEffect
+            }
+
+            isEngineThinking = true
+            engineStatusMessage = null
+
+            engineManager.setPosition(gameState).getOrElse { error ->
+                engineStatusMessage = "Engine position error: ${error.message ?: "Unknown error"}"
+                isEngineThinking = false
+                return@LaunchedEffect
+            }
+
+            val searchParams = when (currentEngine) {
+                EngineType.STOCKFISH -> EngineManager.SearchParams(
+                    depth = settings.stockfishDepth.takeIf { it > 0 },
+                    moveTime = 2000L
+                )
+                EngineType.LEELA_CHESS_ZERO -> EngineManager.SearchParams(
+                    nodes = settings.leelaNodes.takeIf { it > 0 }?.toLong(),
+                    moveTime = 3000L
+                )
+            }
+
+            engineManager.startSearch(
+                gameState = gameState,
+                onBestMove = { move ->
+                    coroutineScope.launch {
+                        makeMove(move)
+                        isEngineThinking = false
+                    }
+                },
+                onInfo = { info ->
+                    coroutineScope.launch {
+                        engineInfo = info
+                    }
+                },
+                searchParams = searchParams
+            ).onFailure { error ->
+                engineStatusMessage = "Engine search error: ${error.message ?: "Unknown error"}"
+                isEngineThinking = false
             }
         }
     }
@@ -124,6 +213,7 @@ fun GameScreen(
             availableMoves = try {
                 MoveValidator.generateLegalMoves(gameState.board, gameState).filter { it.from == square }
             } catch (e: Exception) {
+                engineStatusMessage = "Move generation error: ${e.message ?: "Unknown error"}"
                 emptyList()
             }
         }
@@ -377,7 +467,7 @@ fun GameScreen(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
+                            if (isKingInCheck) {
                                 Text(
                                     text = "🔴 Check!",
                                     color = androidx.compose.ui.graphics.Color.Red,
@@ -395,6 +485,36 @@ fun GameScreen(
                             )
                             Text(
                                 text = "${gameState.moveHistory.size} ply",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    if (engineStatusMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = engineStatusMessage ?: "",
+                            color = androidx.compose.ui.graphics.Color.Red,
+                            style = MaterialTheme.typography.body2,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (engineInfo != null || isEngineThinking) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column {
+                            Text(
+                                text = "Engine ${if (isEngineThinking) "thinking" else "info"}",
+                                style = MaterialTheme.typography.subtitle2,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Depth: ${engineInfo?.depth ?: "--"} • Score: ${formatScore(engineInfo?.score)}",
+                                style = MaterialTheme.typography.body2
+                            )
+                            Text(
+                                text = "PV: ${formatPv(engineInfo)}",
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                             )
