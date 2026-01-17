@@ -27,13 +27,22 @@ object LessonJsonParser {
     private fun JSONArray.toLessonExercises(): List<LessonExercise> {
         return List(length()) { index ->
             val exerciseJson = getJSONObject(index)
+            val solutionLine = when {
+                exerciseJson.has("solutionLine") -> exerciseJson.getJSONArray("solutionLine").toStringList()
+                exerciseJson.has("expectedMoves") -> exerciseJson.getJSONArray("expectedMoves").toStringList()
+                else -> emptyList()
+            }
             LessonExercise(
                 id = exerciseJson.getString("id"),
                 title = exerciseJson.getString("title"),
                 prompt = exerciseJson.getString("prompt"),
                 fen = exerciseJson.getString("fen"),
-                expectedMoves = exerciseJson.getJSONArray("expectedMoves").toStringSet(),
-                explanation = exerciseJson.getString("explanation")
+                solutionLine = solutionLine,
+                explanation = exerciseJson.getString("explanation"),
+                scorePerMove = exerciseJson.optInt("scorePerMove", 10),
+                maxScore = exerciseJson.optIntOrNull("maxScore"),
+                minEval = exerciseJson.optIntOrNull("minEval"),
+                maxMistake = exerciseJson.optIntOrNull("maxMistake")
             )
         }
     }
@@ -42,7 +51,11 @@ object LessonJsonParser {
         return List(length()) { index -> getString(index) }
     }
 
-    private fun JSONArray.toStringSet(): Set<String> {
-        return List(length()) { index -> getString(index) }.toSet()
+    private fun JSONObject.optIntOrNull(name: String): Int? {
+        return if (has(name)) {
+            optInt(name)
+        } else {
+            null
+        }
     }
 }
