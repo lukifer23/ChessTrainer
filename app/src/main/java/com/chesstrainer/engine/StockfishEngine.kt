@@ -5,9 +5,6 @@ import com.chesstrainer.chess.GameState
 import com.chesstrainer.chess.Move
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -23,7 +20,11 @@ class StockfishEngine(private val context: Context, private val settings: Settin
 
     private var isInitialized = false
 
-    override fun getBestMove(gameState: GameState, callback: (Move) -> Unit) {
+    override fun getBestMove(
+        gameState: GameState,
+        callback: (Move) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
         scope.launch {
             try {
                 android.util.Log.d("StockfishEngine", "Starting getBestMove")
@@ -45,8 +46,7 @@ class StockfishEngine(private val context: Context, private val settings: Settin
                 )
             } catch (e: Exception) {
                 android.util.Log.e("StockfishEngine", "Error in getBestMove", e)
-                // Fallback to simple engine if Stockfish fails
-                SimpleChessEngine().getBestMove(gameState, callback)
+                onError(e)
             }
         }
     }
@@ -74,7 +74,11 @@ class StockfishEngine(private val context: Context, private val settings: Settin
     /**
      * Ensure the engine is initialized and ready
      */
-    private suspend fun ensureInitialized() {
+    suspend fun initialize(onStatusUpdate: (String) -> Unit = {}): Result<Unit> {
+        return runCatching { ensureInitialized(onStatusUpdate) }
+    }
+
+    private suspend fun ensureInitialized(onStatusUpdate: (String) -> Unit = {}) {
         if (isInitialized && engineManager?.isReady() == true) {
             return
         }
@@ -83,7 +87,7 @@ class StockfishEngine(private val context: Context, private val settings: Settin
             engineManager = EngineManager(context, settings)
 
             // Start the engine
-            engineManager?.startEngine()?.getOrElse { error ->
+            engineManager?.startEngine(onStatusUpdate)?.getOrElse { error ->
                 throw Exception("Failed to start Stockfish engine: ${error.message}")
             }
 
