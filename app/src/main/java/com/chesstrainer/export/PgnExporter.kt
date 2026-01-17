@@ -15,7 +15,14 @@ object PgnExporter {
         event: String = "Chess Trainer",
         site: String = "Local",
         round: String = "1",
-        date: Date = Date()
+        date: Date = Date(),
+        timeControl: String? = null,
+        whiteElo: Int? = null,
+        blackElo: Int? = null,
+        whiteEngine: String? = null,
+        blackEngine: String? = null,
+        engineVersion: String? = null,
+        startingFen: String? = null
     ): String {
         val formatter = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
         val resultTag = resultTag(gameState)
@@ -26,6 +33,16 @@ object PgnExporter {
             add("[Round \"$round\"]")
             add("[White \"$whiteName\"]")
             add("[Black \"$blackName\"]")
+            timeControl?.let { add("[TimeControl \"$it\"]") }
+            whiteElo?.let { add("[WhiteElo \"$it\"]") }
+            blackElo?.let { add("[BlackElo \"$it\"]") }
+            if (!startingFen.isNullOrBlank()) {
+                add("[SetUp \"1\"]")
+                add("[FEN \"$startingFen\"]")
+            }
+            whiteEngine?.let { add("[WhiteEngine \"$it\"]") }
+            blackEngine?.let { add("[BlackEngine \"$it\"]") }
+            engineVersion?.let { add("[EngineVersion \"$it\"]") }
             add("[Result \"$resultTag\"]")
             add("[Termination \"${termination(gameState)}\"]")
         }

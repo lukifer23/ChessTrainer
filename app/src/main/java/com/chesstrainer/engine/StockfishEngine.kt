@@ -20,6 +20,8 @@ class StockfishEngine(private val context: Context, private val settings: Settin
 
     private var isInitialized = false
 
+    fun getEngineName(): String? = engineManager?.getEngineName()
+
     override fun getBestMove(
         gameState: GameState,
         callback: (Move) -> Unit,
