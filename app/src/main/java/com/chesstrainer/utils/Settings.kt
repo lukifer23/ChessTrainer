@@ -9,6 +9,11 @@ enum class EngineType {
     STOCKFISH
 }
 
+enum class PieceTheme {
+    CLASSIC,
+    MERIDA
+}
+
 class Settings(context: Context) {
     private val preferences: SharedPreferences =
         context.getSharedPreferences("chess_trainer_settings", Context.MODE_PRIVATE)
@@ -36,4 +41,8 @@ class Settings(context: Context) {
     var boardOrientation: ChessColor
         get() = ChessColor.valueOf(preferences.getString("board_orientation", ChessColor.WHITE.name)!!)
         set(value) = preferences.edit().putString("board_orientation", value.name).apply()
+
+    var pieceTheme: PieceTheme
+        get() = PieceTheme.valueOf(preferences.getString("piece_theme", PieceTheme.MERIDA.name)!!)
+        set(value) = preferences.edit().putString("piece_theme", value.name).apply()
 }

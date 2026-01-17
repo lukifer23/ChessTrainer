@@ -98,6 +98,9 @@ dependencies {
     // Coil for image loading (chess piece graphics)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // SVG rendering for piece sets
+    implementation("com.caverock:androidsvg:1.4")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

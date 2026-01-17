@@ -1,5 +1,7 @@
 package com.chesstrainer.ui
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -24,12 +26,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import com.caverock.androidsvg.SVG
 import com.chesstrainer.R
 import com.chesstrainer.chess.*
+import com.chesstrainer.utils.PieceTheme
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-private fun loadVectorAsBitmap(context: android.content.Context, resId: Int, density: Float): ImageBitmap? {
+private fun loadDrawableAsBitmap(
+    context: android.content.Context,
+    resId: Int,
+    density: Float,
+    baseSizeDp: Int = 96
+): ImageBitmap? {
     return try {
         val drawable = ContextCompat.getDrawable(context, resId)
         if (drawable == null) {
@@ -37,12 +46,33 @@ private fun loadVectorAsBitmap(context: android.content.Context, resId: Int, den
             return null
         }
         // Create bitmap at a reasonable size - pieces will be scaled to fit squares
-        val size = (72 * density).toInt() // 72dp - reasonable size for chess pieces
+        val size = (baseSizeDp * density).roundToInt().coerceAtLeast(1)
         android.util.Log.d("ChessBoard", "Loading bitmap for resource $resId with size ${size}x${size}")
         val bitmap = drawable.toBitmap(size, size)
         bitmap.asImageBitmap()
     } catch (e: Exception) {
         android.util.Log.e("ChessBoard", "Failed to load bitmap for resource $resId", e)
+        null
+    }
+}
+
+private fun loadSvgAsBitmap(
+    context: android.content.Context,
+    resId: Int,
+    density: Float,
+    baseSizeDp: Int = 96
+): ImageBitmap? {
+    return try {
+        val size = (baseSizeDp * density).roundToInt().coerceAtLeast(1)
+        val svg = SVG.getFromResource(context, resId)
+        svg.setDocumentWidth(size.toFloat())
+        svg.setDocumentHeight(size.toFloat())
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        svg.renderToCanvas(canvas)
+        bitmap.asImageBitmap()
+    } catch (e: Exception) {
+        android.util.Log.e("ChessBoard", "Failed to load SVG for resource $resId", e)
         null
     }
 }
@@ -68,13 +98,14 @@ fun ChessBoard(
     draggedPiece: Square? = null,
     dragOffset: Offset = Offset.Zero,
     boardOrientation: com.chesstrainer.chess.Color = com.chesstrainer.chess.Color.WHITE,
+    pieceTheme: PieceTheme = PieceTheme.MERIDA,
     onSquareClick: (Square) -> Unit = {},
     onDragStart: (Square) -> Unit = {},
     onDragEnd: (Square?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val theme = BoardTheme()
-    val pieceImages = rememberPieceImages()
+    val pieceImages = rememberPieceImages(pieceTheme)
 
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
@@ -152,32 +183,49 @@ fun ChessBoard(
 }
 
 @Composable
-private fun rememberPieceImages(): PieceAssets {
+private fun rememberPieceImages(pieceTheme: PieceTheme): PieceAssets {
     val context = LocalContext.current
-    return remember {
+    return remember(pieceTheme) {
         val density = context.resources.displayMetrics.density
         try {
             android.util.Log.d("ChessBoard", "Loading piece images with density: $density")
-            val missingAsset = loadVectorAsBitmap(context, R.drawable.ic_chess_missing, density)
+            val missingAsset = loadDrawableAsBitmap(context, R.drawable.ic_chess_missing, density)
                 ?: run {
                     android.util.Log.e("ChessBoard", "Missing required placeholder asset: ic_chess_missing")
                     ImageBitmap(1, 1)
                 }
-            val images = mapOf(
-                PieceKey(Color.WHITE, PieceType.KING) to R.drawable.ic_chess_king_white,
-                PieceKey(Color.WHITE, PieceType.QUEEN) to R.drawable.ic_chess_queen_white,
-                PieceKey(Color.WHITE, PieceType.ROOK) to R.drawable.ic_chess_rook_white,
-                PieceKey(Color.WHITE, PieceType.BISHOP) to R.drawable.ic_chess_bishop_white,
-                PieceKey(Color.WHITE, PieceType.KNIGHT) to R.drawable.ic_chess_knight_white,
-                PieceKey(Color.WHITE, PieceType.PAWN) to R.drawable.ic_chess_pawn_white,
-                PieceKey(Color.BLACK, PieceType.KING) to R.drawable.ic_chess_king_black,
-                PieceKey(Color.BLACK, PieceType.QUEEN) to R.drawable.ic_chess_queen_black,
-                PieceKey(Color.BLACK, PieceType.ROOK) to R.drawable.ic_chess_rook_black,
-                PieceKey(Color.BLACK, PieceType.BISHOP) to R.drawable.ic_chess_bishop_black,
-                PieceKey(Color.BLACK, PieceType.KNIGHT) to R.drawable.ic_chess_knight_black,
-                PieceKey(Color.BLACK, PieceType.PAWN) to R.drawable.ic_chess_pawn_black
-            ).mapValues { (key, resId) ->
-                loadVectorAsBitmap(context, resId, density) ?: run {
+            val (themeMap, loader) = when (pieceTheme) {
+                PieceTheme.CLASSIC -> mapOf(
+                    PieceKey(Color.WHITE, PieceType.KING) to R.drawable.ic_chess_king_white,
+                    PieceKey(Color.WHITE, PieceType.QUEEN) to R.drawable.ic_chess_queen_white,
+                    PieceKey(Color.WHITE, PieceType.ROOK) to R.drawable.ic_chess_rook_white,
+                    PieceKey(Color.WHITE, PieceType.BISHOP) to R.drawable.ic_chess_bishop_white,
+                    PieceKey(Color.WHITE, PieceType.KNIGHT) to R.drawable.ic_chess_knight_white,
+                    PieceKey(Color.WHITE, PieceType.PAWN) to R.drawable.ic_chess_pawn_white,
+                    PieceKey(Color.BLACK, PieceType.KING) to R.drawable.ic_chess_king_black,
+                    PieceKey(Color.BLACK, PieceType.QUEEN) to R.drawable.ic_chess_queen_black,
+                    PieceKey(Color.BLACK, PieceType.ROOK) to R.drawable.ic_chess_rook_black,
+                    PieceKey(Color.BLACK, PieceType.BISHOP) to R.drawable.ic_chess_bishop_black,
+                    PieceKey(Color.BLACK, PieceType.KNIGHT) to R.drawable.ic_chess_knight_black,
+                    PieceKey(Color.BLACK, PieceType.PAWN) to R.drawable.ic_chess_pawn_black
+                ) to ::loadDrawableAsBitmap
+                PieceTheme.MERIDA -> mapOf(
+                    PieceKey(Color.WHITE, PieceType.KING) to R.raw.pieces_merida_white_king,
+                    PieceKey(Color.WHITE, PieceType.QUEEN) to R.raw.pieces_merida_white_queen,
+                    PieceKey(Color.WHITE, PieceType.ROOK) to R.raw.pieces_merida_white_rook,
+                    PieceKey(Color.WHITE, PieceType.BISHOP) to R.raw.pieces_merida_white_bishop,
+                    PieceKey(Color.WHITE, PieceType.KNIGHT) to R.raw.pieces_merida_white_knight,
+                    PieceKey(Color.WHITE, PieceType.PAWN) to R.raw.pieces_merida_white_pawn,
+                    PieceKey(Color.BLACK, PieceType.KING) to R.raw.pieces_merida_black_king,
+                    PieceKey(Color.BLACK, PieceType.QUEEN) to R.raw.pieces_merida_black_queen,
+                    PieceKey(Color.BLACK, PieceType.ROOK) to R.raw.pieces_merida_black_rook,
+                    PieceKey(Color.BLACK, PieceType.BISHOP) to R.raw.pieces_merida_black_bishop,
+                    PieceKey(Color.BLACK, PieceType.KNIGHT) to R.raw.pieces_merida_black_knight,
+                    PieceKey(Color.BLACK, PieceType.PAWN) to R.raw.pieces_merida_black_pawn
+                ) to ::loadSvgAsBitmap
+            }
+            val images = themeMap.mapValues { (key, resId) ->
+                loader(context, resId, density) ?: run {
                     android.util.Log.e("ChessBoard", "Missing required piece asset for $key (resId=$resId)")
                     missingAsset
                 }

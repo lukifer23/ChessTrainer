@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.chesstrainer.engine.EngineInstaller
 import com.chesstrainer.chess.Color as ChessColor
 import com.chesstrainer.utils.EngineType
+import com.chesstrainer.utils.PieceTheme
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.launch
 
@@ -26,6 +27,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
 
     var selectedEngine by remember { mutableStateOf(settings.engineType) }
     var selectedBoardOrientation by remember { mutableStateOf(settings.boardOrientation) }
+    var selectedPieceTheme by remember { mutableStateOf(settings.pieceTheme) }
     var leelaNodes by remember { mutableStateOf(settings.leelaNodes.toString()) }
     var leelaThreads by remember { mutableStateOf(settings.lc0Threads.toString()) }
     var leelaBackend by remember { mutableStateOf(settings.lc0Backend) }
@@ -42,9 +44,18 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     }
 
     // Save settings when changed
-    LaunchedEffect(selectedEngine, selectedBoardOrientation, leelaNodes, leelaThreads, leelaBackend, stockfishDepth) {
+    LaunchedEffect(
+        selectedEngine,
+        selectedBoardOrientation,
+        selectedPieceTheme,
+        leelaNodes,
+        leelaThreads,
+        leelaBackend,
+        stockfishDepth
+    ) {
         settings.engineType = selectedEngine
         settings.boardOrientation = selectedBoardOrientation
+        settings.pieceTheme = selectedPieceTheme
         settings.leelaNodes = leelaNodes.toIntOrNull() ?: 1000
         settings.lc0Threads = leelaThreads.toIntOrNull() ?: 2
         settings.lc0Backend = leelaBackend
@@ -353,6 +364,29 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Piece Theme",
+                        style = MaterialTheme.typography.subtitle1
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ThemeOption(
+                            title = "Merida",
+                            description = "High-detail SVG-derived pieces",
+                            selected = selectedPieceTheme == PieceTheme.MERIDA,
+                            onSelect = { selectedPieceTheme = PieceTheme.MERIDA }
+                        )
+                        ThemeOption(
+                            title = "Classic",
+                            description = "Minimal vector silhouettes",
+                            selected = selectedPieceTheme == PieceTheme.CLASSIC,
+                            onSelect = { selectedPieceTheme = PieceTheme.CLASSIC }
+                        )
+                    }
                 }
             }
 
@@ -371,6 +405,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                     SettingsSummary(
                         engine = selectedEngine,
                         boardOrientation = selectedBoardOrientation,
+                        pieceTheme = selectedPieceTheme,
                         leelaNodes = leelaNodes.toIntOrNull() ?: 1000,
                         stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
                     )
@@ -493,6 +528,7 @@ private fun EngineStatusRow(
 private fun SettingsSummary(
     engine: EngineType,
     boardOrientation: ChessColor,
+    pieceTheme: PieceTheme,
     leelaNodes: Int,
     stockfishDepth: Int
 ) {
@@ -512,5 +548,39 @@ private fun SettingsSummary(
             text = "Board: ${if (boardOrientation == ChessColor.WHITE) "White" else "Black"} at bottom",
             style = MaterialTheme.typography.body2
         )
+        Text(
+            text = "Pieces: ${if (pieceTheme == PieceTheme.MERIDA) "Merida" else "Classic"}",
+            style = MaterialTheme.typography.body2
+        )
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onSelect
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.subtitle1
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.body2,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            )
+        }
     }
 }

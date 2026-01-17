@@ -262,6 +262,7 @@ fun AnalysisScreen(onNavigateBack: () -> Unit) {
                             draggedPiece = draggedPiece,
                             dragOffset = dragOffset,
                             boardOrientation = settings.boardOrientation,
+                            pieceTheme = settings.pieceTheme,
                             onSquareClick = { square -> onSquareClick(square) },
                             onDragStart = { square -> onDragStart(square) },
                             onDragEnd = { square -> onDragEnd(square) },

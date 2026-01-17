@@ -19,6 +19,7 @@ import com.chesstrainer.chess.Color
 import com.chesstrainer.data.LessonExercise
 import com.chesstrainer.data.LessonModule
 import com.chesstrainer.data.LessonRepository
+import com.chesstrainer.utils.PieceTheme
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.launch
 
@@ -115,6 +116,7 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
                     LessonExerciseCard(
                         exercise = exercise,
                         boardOrientation = settings.boardOrientation,
+                        pieceTheme = settings.pieceTheme,
                         isCompleted = isCompleted,
                         isLocked = isLocked,
                         onExerciseCompleted = { id ->
@@ -163,6 +165,7 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
 private fun LessonExerciseCard(
     exercise: LessonExercise,
     boardOrientation: Color,
+    pieceTheme: PieceTheme,
     isCompleted: Boolean,
     isLocked: Boolean,
     onExerciseCompleted: (String) -> Unit
@@ -332,6 +335,7 @@ private fun LessonExerciseCard(
                 draggedPiece = draggedPiece,
                 dragOffset = dragOffset,
                 boardOrientation = boardOrientation,
+                pieceTheme = pieceTheme,
                 onSquareClick = { square -> onSquareClick(square) },
                 onDragStart = { square -> onDragStart(square) },
                 onDragEnd = { square -> onDragEnd(square) },
