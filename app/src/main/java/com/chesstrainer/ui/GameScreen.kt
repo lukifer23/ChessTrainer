@@ -19,6 +19,8 @@ import com.chesstrainer.data.GameRepository
 import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
+import com.chesstrainer.engine.EngineInstaller
+import com.chesstrainer.engine.EngineManager
 import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
@@ -43,6 +45,10 @@ fun shouldEngineMove(player: com.chesstrainer.chess.Color, mode: GameMode): Bool
     }
 }
 
+private fun requiresEngine(mode: GameMode): Boolean {
+    return mode != GameMode.FREE_PLAY
+}
+
 @Composable
 fun GameScreen(
     onNavigateToSettings: () -> Unit,
@@ -53,6 +59,7 @@ fun GameScreen(
     val context = LocalContext.current
     val settings = remember { Settings(context) }
     val repository = remember { GameRepository(context.applicationContext) }
+    val engineInstaller = remember { EngineInstaller(context) }
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -67,6 +74,11 @@ fun GameScreen(
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
     var hasRecordedGame by remember { mutableStateOf(false) }
+    var pendingEngineStatus by remember { mutableStateOf<EngineInstaller.EngineStatus?>(null) }
+    var showEngineMissingDialog by remember { mutableStateOf(false) }
+    var engineStartupError by remember { mutableStateOf<String?>(null) }
+    var engineReady by remember { mutableStateOf(false) }
+    var engineStartupInProgress by remember { mutableStateOf(false) }
     val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()) }
 
     fun makeMove(move: Move) {
@@ -85,6 +97,26 @@ fun GameScreen(
             draggedPiece = null
             dragOffset = Offset.Zero
         }
+    }
+
+    fun startGameWithMode(mode: GameMode) {
+        gameMode = mode
+        currentEngine = settings.engineType
+        gameStarted = true
+        showBoard = true
+        engineReady = !requiresEngine(mode)
+        engineStartupError = null
+    }
+
+    fun handleEngineRequiredStart(mode: GameMode) {
+        val status = engineInstaller.getStatus(settings.engineType)
+        val engineAvailable = status.engineAvailable && status.weightsAvailable
+        if (!engineAvailable) {
+            pendingEngineStatus = status
+            showEngineMissingDialog = true
+            return
+        }
+        startGameWithMode(mode)
     }
 
     fun exportPgn() {
@@ -199,9 +231,25 @@ fun GameScreen(
         }
     }
 
+    LaunchedEffect(gameStarted, gameMode, currentEngine) {
+        if (gameStarted && requiresEngine(gameMode) && !engineReady && !engineStartupInProgress) {
+            engineStartupInProgress = true
+            val manager = EngineManager(context, settings)
+            val result = manager.startEngine()
+            if (result.isSuccess) {
+                engineReady = true
+            } else {
+                engineStartupError = result.exceptionOrNull()?.message ?: "Failed to start engine."
+                gameStarted = false
+                showBoard = false
+            }
+            engineStartupInProgress = false
+        }
+    }
+
     // Engine move logic (simplified - just make random legal moves for demo)
     LaunchedEffect(gameState.currentPlayer, gameMode) {
-        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode)) {
+        if (!gameState.isGameOver() && shouldEngineMove(gameState.currentPlayer, gameMode) && engineReady) {
             kotlinx.coroutines.delay(1000) // Delay for better UX
 
             try {
@@ -311,10 +359,7 @@ fun GameScreen(
 
             Button(
                 onClick = {
-                    gameMode = GameMode.HUMAN_VS_ENGINE
-                    currentEngine = settings.engineType
-                    gameStarted = true
-                    showBoard = true
+                    handleEngineRequiredStart(GameMode.HUMAN_VS_ENGINE)
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -325,10 +370,7 @@ fun GameScreen(
 
             OutlinedButton(
                 onClick = {
-                    gameMode = GameMode.ENGINE_VS_ENGINE
-                    currentEngine = settings.engineType
-                    gameStarted = true
-                    showBoard = true
+                    handleEngineRequiredStart(GameMode.ENGINE_VS_ENGINE)
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -339,9 +381,7 @@ fun GameScreen(
 
             OutlinedButton(
                 onClick = {
-                    gameMode = GameMode.FREE_PLAY
-                    gameStarted = true
-                    showBoard = true
+                    startGameWithMode(GameMode.FREE_PLAY)
                 },
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
@@ -524,6 +564,7 @@ fun GameScreen(
                                 draggedPiece = null
                                 dragOffset = Offset.Zero
                                 hasRecordedGame = false
+                                engineReady = !requiresEngine(gameMode)
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -535,6 +576,7 @@ fun GameScreen(
                                 gameStarted = false
                                 showBoard = false
                                 hasRecordedGame = false
+                                engineReady = false
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -566,8 +608,69 @@ fun GameScreen(
                         draggedPiece = null
                         dragOffset = Offset.Zero
                         hasRecordedGame = false
+                        engineReady = !requiresEngine(gameMode)
                     }) {
                         Text("New Game")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showEngineMissingDialog) {
+        val status = pendingEngineStatus
+        AlertDialog(
+            onDismissRequest = { showEngineMissingDialog = false },
+            title = { Text("Engine Required") },
+            text = {
+                Text(
+                    status?.let {
+                        "${it.engineType.name.lowercase().replace("_", " ").capitalize()} is not ready. " +
+                            "Status: ${it.statusMessage}. Install the engine in Settings to start."
+                    } ?: "Selected engine is not installed. Install it in Settings to start."
+                )
+            },
+            buttons = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = {
+                        showEngineMissingDialog = false
+                    }) {
+                        Text("Cancel")
+                    }
+                    TextButton(onClick = {
+                        showEngineMissingDialog = false
+                        onNavigateToSettings()
+                    }) {
+                        Text("Go to Settings")
+                    }
+                }
+            }
+        )
+    }
+
+    engineStartupError?.let { errorMessage ->
+        AlertDialog(
+            onDismissRequest = { engineStartupError = null },
+            title = { Text("Engine Startup Failed") },
+            text = { Text(errorMessage) },
+            buttons = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = {
+                        engineStartupError = null
+                    }) {
+                        Text("Dismiss")
+                    }
+                    TextButton(onClick = {
+                        engineStartupError = null
+                        onNavigateToSettings()
+                    }) {
+                        Text("Open Settings")
                     }
                 }
             }
