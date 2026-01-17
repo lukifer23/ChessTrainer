@@ -223,6 +223,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         status = leelaStatus.statusMessage,
                         details = leelaStatus.weightsPath
                     )
+                    leelaStatus.unsupportedAbiMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.error
+                        )
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
@@ -253,6 +261,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         status = stockfishStatus.statusMessage,
                         details = stockfishStatus.enginePath
                     )
+                    stockfishStatus.unsupportedAbiMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.error
+                        )
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End

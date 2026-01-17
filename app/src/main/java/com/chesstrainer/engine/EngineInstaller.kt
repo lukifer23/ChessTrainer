@@ -38,13 +38,15 @@ class EngineInstaller(private val context: Context) {
         val weightsAvailable: Boolean,
         val enginePath: String?,
         val weightsPath: String?,
-        val statusMessage: String
+        val statusMessage: String,
+        val unsupportedAbiMessage: String?
     )
 
     private val baseDir = File(context.filesDir, "engines")
 
     fun getStatus(engineType: EngineType): EngineStatus {
         val abi = findSupportedAbi(engineType)
+        val unsupportedMessage = unsupportedAbiMessage(engineType)
         val engineFile = abi?.let { resolveEngineBinary(engineType, it) }
         val engineAvailable = engineFile?.let { isExecutableBinary(it) } == true
         val weightsFile = if (engineType == EngineType.LEELA_CHESS_ZERO) {
@@ -54,6 +56,7 @@ class EngineInstaller(private val context: Context) {
         }
         val weightsAvailable = weightsFile?.exists() != false
         val statusMessage = when {
+            abi == null -> "Unsupported ABI"
             engineAvailable && weightsAvailable -> "Installed"
             !engineAvailable -> "Engine binary missing"
             engineType == EngineType.LEELA_CHESS_ZERO && !weightsAvailable -> "Network weights missing"
@@ -65,7 +68,8 @@ class EngineInstaller(private val context: Context) {
             weightsAvailable = weightsAvailable,
             enginePath = engineFile?.absolutePath,
             weightsPath = weightsFile?.absolutePath,
-            statusMessage = statusMessage
+            statusMessage = statusMessage,
+            unsupportedAbiMessage = unsupportedMessage
         )
     }
 
@@ -76,7 +80,9 @@ class EngineInstaller(private val context: Context) {
         try {
             baseDir.mkdirs()
             val abi = findSupportedAbi(engineType)
-                ?: return@withContext Result.failure(Exception("No supported ABI download available."))
+                ?: return@withContext Result.failure(
+                    Exception(unsupportedAbiMessage(engineType) ?: "No supported ABI download available.")
+                )
             val engineSpec = engineBinarySpec(engineType, abi)
                 ?: return@withContext Result.failure(Exception("No download spec configured for $engineType/$abi."))
             val engineBinary = resolveEngineBinary(engineType, abi)
@@ -112,11 +118,25 @@ class EngineInstaller(private val context: Context) {
     }
 
     private fun findSupportedAbi(engineType: EngineType): String? {
-        val candidates = when (engineType) {
+        val candidates = supportedAbis(engineType)
+        return Build.SUPPORTED_ABIS.firstOrNull { abi -> abi in candidates }
+    }
+
+    private fun supportedAbis(engineType: EngineType): Set<String> {
+        return when (engineType) {
             EngineType.STOCKFISH -> stockfishDownloadSpecs().keys
             EngineType.LEELA_CHESS_ZERO -> lc0DownloadSpecs().keys
+        }.toSet()
+    }
+
+    private fun unsupportedAbiMessage(engineType: EngineType): String? {
+        val candidates = supportedAbis(engineType)
+        if (Build.SUPPORTED_ABIS.any { it in candidates }) {
+            return null
         }
-        return Build.SUPPORTED_ABIS.firstOrNull { abi -> abi in candidates }
+        val deviceAbi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown ABI"
+        val suggestedAbi = candidates.firstOrNull { it.startsWith("arm64") } ?: candidates.firstOrNull() ?: "arm64"
+        return "No engine available for $deviceAbi; please use $suggestedAbi device."
     }
 
     private fun resolveEngineBinary(engineType: EngineType, abi: String): File {
