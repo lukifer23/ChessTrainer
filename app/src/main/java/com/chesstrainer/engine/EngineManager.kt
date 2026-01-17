@@ -90,6 +90,7 @@ class EngineManager(
 
                         // Initialize UCI protocol
                         initializeEngine()
+                        waitForReadyOk()
                     }
 
                     Result.success(Unit)
@@ -142,11 +143,9 @@ class EngineManager(
                         engineName = response.name
                     }
                 }
-                is UCIParser.UCIResponse.UciOkResponse -> {
-                    isEngineReady = true
-                }
                 is UCIParser.UCIResponse.ReadyOkResponse -> {
                     // Engine is ready for commands
+                    isEngineReady = true
                 }
                 is UCIParser.UCIResponse.ErrorResponse -> {
                     // Log error
@@ -181,6 +180,25 @@ class EngineManager(
             // Expected - initialization complete
         } catch (e: Exception) {
             throw Exception("Engine initialization failed: ${e.message}", e)
+        }
+    }
+
+    private suspend fun waitForReadyOk() {
+        try {
+            sendCommand(UCIParser.isReadyCommand())
+            withTimeout(5000) {
+                responses.collect { response ->
+                    if (response is UCIParser.UCIResponse.ReadyOkResponse) {
+                        throw ReadyCompleteException()
+                    }
+                }
+            }
+        } catch (e: TimeoutCancellationException) {
+            throw Exception("Engine readiness timeout")
+        } catch (e: ReadyCompleteException) {
+            // Expected - readiness complete
+        } catch (e: Exception) {
+            throw Exception("Engine readiness failed: ${e.message}", e)
         }
     }
 
@@ -412,5 +430,6 @@ class EngineManager(
 
     // Exception classes for control flow
     private class InitializationCompleteException : Exception()
+    private class ReadyCompleteException : Exception()
     private class SearchCompleteException : Exception()
 }
