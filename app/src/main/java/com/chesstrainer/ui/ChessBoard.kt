@@ -13,10 +13,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -28,21 +26,21 @@ import com.chesstrainer.chess.*
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-private fun loadVectorAsBitmap(context: android.content.Context, resId: Int, density: Float): ImageBitmap {
-    try {
+private fun loadVectorAsBitmap(context: android.content.Context, resId: Int, density: Float): ImageBitmap? {
+    return try {
         val drawable = ContextCompat.getDrawable(context, resId)
         if (drawable == null) {
             android.util.Log.e("ChessBoard", "Failed to load drawable for resource $resId")
-            return ImageBitmap(1, 1)
+            return null
         }
         // Create bitmap at a reasonable size - pieces will be scaled to fit squares
         val size = (72 * density).toInt() // 72dp - reasonable size for chess pieces
         android.util.Log.d("ChessBoard", "Loading bitmap for resource $resId with size ${size}x${size}")
         val bitmap = drawable.toBitmap(size, size)
-        return bitmap.asImageBitmap()
+        bitmap.asImageBitmap()
     } catch (e: Exception) {
         android.util.Log.e("ChessBoard", "Failed to load bitmap for resource $resId", e)
-        return ImageBitmap(1, 1)
+        null
     }
 }
 
@@ -134,31 +132,41 @@ fun ChessBoard(
 }
 
 @Composable
-private fun rememberPieceImages(): Map<PieceKey, ImageBitmap> {
+private fun rememberPieceImages(): PieceAssets {
     val context = LocalContext.current
     return remember {
         val density = context.resources.displayMetrics.density
         try {
             android.util.Log.d("ChessBoard", "Loading piece images with density: $density")
+            val missingAsset = loadVectorAsBitmap(context, R.drawable.ic_chess_missing, density)
+                ?: run {
+                    android.util.Log.e("ChessBoard", "Missing required placeholder asset: ic_chess_missing")
+                    ImageBitmap(1, 1)
+                }
             val images = mapOf(
-                PieceKey(Color.WHITE, PieceType.KING) to loadVectorAsBitmap(context, R.drawable.ic_chess_king_white, density),
-                PieceKey(Color.WHITE, PieceType.QUEEN) to loadVectorAsBitmap(context, R.drawable.ic_chess_queen_white, density),
-                PieceKey(Color.WHITE, PieceType.ROOK) to loadVectorAsBitmap(context, R.drawable.ic_chess_rook_white, density),
-                PieceKey(Color.WHITE, PieceType.BISHOP) to loadVectorAsBitmap(context, R.drawable.ic_chess_bishop_white, density),
-                PieceKey(Color.WHITE, PieceType.KNIGHT) to loadVectorAsBitmap(context, R.drawable.ic_chess_knight_white, density),
-                PieceKey(Color.WHITE, PieceType.PAWN) to loadVectorAsBitmap(context, R.drawable.ic_chess_pawn_white, density),
-                PieceKey(Color.BLACK, PieceType.KING) to loadVectorAsBitmap(context, R.drawable.ic_chess_king_black, density),
-                PieceKey(Color.BLACK, PieceType.QUEEN) to loadVectorAsBitmap(context, R.drawable.ic_chess_queen_black, density),
-                PieceKey(Color.BLACK, PieceType.ROOK) to loadVectorAsBitmap(context, R.drawable.ic_chess_rook_black, density),
-                PieceKey(Color.BLACK, PieceType.BISHOP) to loadVectorAsBitmap(context, R.drawable.ic_chess_bishop_black, density),
-                PieceKey(Color.BLACK, PieceType.KNIGHT) to loadVectorAsBitmap(context, R.drawable.ic_chess_knight_black, density),
-                PieceKey(Color.BLACK, PieceType.PAWN) to loadVectorAsBitmap(context, R.drawable.ic_chess_pawn_black, density)
-            )
+                PieceKey(Color.WHITE, PieceType.KING) to R.drawable.ic_chess_king_white,
+                PieceKey(Color.WHITE, PieceType.QUEEN) to R.drawable.ic_chess_queen_white,
+                PieceKey(Color.WHITE, PieceType.ROOK) to R.drawable.ic_chess_rook_white,
+                PieceKey(Color.WHITE, PieceType.BISHOP) to R.drawable.ic_chess_bishop_white,
+                PieceKey(Color.WHITE, PieceType.KNIGHT) to R.drawable.ic_chess_knight_white,
+                PieceKey(Color.WHITE, PieceType.PAWN) to R.drawable.ic_chess_pawn_white,
+                PieceKey(Color.BLACK, PieceType.KING) to R.drawable.ic_chess_king_black,
+                PieceKey(Color.BLACK, PieceType.QUEEN) to R.drawable.ic_chess_queen_black,
+                PieceKey(Color.BLACK, PieceType.ROOK) to R.drawable.ic_chess_rook_black,
+                PieceKey(Color.BLACK, PieceType.BISHOP) to R.drawable.ic_chess_bishop_black,
+                PieceKey(Color.BLACK, PieceType.KNIGHT) to R.drawable.ic_chess_knight_black,
+                PieceKey(Color.BLACK, PieceType.PAWN) to R.drawable.ic_chess_pawn_black
+            ).mapValues { (key, resId) ->
+                loadVectorAsBitmap(context, resId, density) ?: run {
+                    android.util.Log.e("ChessBoard", "Missing required piece asset for $key (resId=$resId)")
+                    missingAsset
+                }
+            }
             android.util.Log.d("ChessBoard", "Successfully loaded ${images.size} piece images")
-            images
+            PieceAssets(images, missingAsset)
         } catch (e: Exception) {
             android.util.Log.e("ChessBoard", "Failed to load piece images", e)
-            emptyMap()
+            PieceAssets(emptyMap(), ImageBitmap(1, 1))
         }
     }
 }
@@ -197,7 +205,7 @@ private fun DrawScope.drawBoard(
     availableMoves: List<Move>,
     lastMove: Move?,
     boardOrientation: com.chesstrainer.chess.Color,
-    pieceImages: Map<PieceKey, ImageBitmap>,
+    pieceImages: PieceAssets,
     draggedPiece: Square? = null,
     dragPosition: Offset = Offset.Zero
 ) {
@@ -290,29 +298,26 @@ private fun DrawScope.drawBoard(
 }
 
 private fun DrawScope.drawChessPiece(
-    pieceImages: Map<PieceKey, ImageBitmap>,
+    pieceImages: PieceAssets,
     piece: Piece,
     centerX: Float,
     centerY: Float,
     size: Float
 ) {
-    val image = pieceImages[PieceKey(piece.color, piece.type)] ?: run {
-        // Draw a colored circle as fallback if image not found
-        drawCircle(
-            color = if (piece.color == Color.WHITE) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black,
-            center = Offset(centerX, centerY),
-            radius = size / 2f
-        )
-        return
+    val key = PieceKey(piece.color, piece.type)
+    val image = pieceImages.pieces[key] ?: run {
+        android.util.Log.e("ChessBoard", "Missing piece image for $key; using placeholder asset")
+        pieceImages.missingAsset
     }
 
-    // Calculate proper scaling to fit the piece in the square
-    val scale = size / image.width.toFloat()
+    val targetSize = size.roundToInt().coerceAtLeast(1)
+    val topLeftX = (centerX - size / 2f).roundToInt()
+    val topLeftY = (centerY - size / 2f).roundToInt()
 
-    // Draw the image at its natural size for now
     drawImage(
         image = image,
-        topLeft = Offset(centerX - image.width / 2f, centerY - image.height / 2f),
+        dstSize = IntSize(targetSize, targetSize),
+        dstOffset = IntOffset(topLeftX, topLeftY),
         alpha = 1.0f
     )
 }
@@ -351,6 +356,11 @@ private fun DrawScope.drawCoordinates(
 }
 
 private data class PieceKey(val color: com.chesstrainer.chess.Color, val type: PieceType)
+
+private data class PieceAssets(
+    val pieces: Map<PieceKey, ImageBitmap>,
+    val missingAsset: ImageBitmap
+)
 
 @Preview(showBackground = true, name = "Piece Asset Mapping")
 @Composable
