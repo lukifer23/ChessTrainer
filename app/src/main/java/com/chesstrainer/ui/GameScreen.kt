@@ -1,5 +1,6 @@
 package com.chesstrainer.ui
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -11,15 +12,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.chesstrainer.chess.*
 import com.chesstrainer.data.GameEntity
 import com.chesstrainer.data.GameRepository
 import com.chesstrainer.data.GameResultEntity
 import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
+import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
 import com.chesstrainer.utils.Settings
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 enum class GameMode {
@@ -60,6 +67,7 @@ fun GameScreen(
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
     var hasRecordedGame by remember { mutableStateOf(false) }
+    val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()) }
 
     fun makeMove(move: Move) {
         try {
@@ -77,6 +85,39 @@ fun GameScreen(
             draggedPiece = null
             dragOffset = Offset.Zero
         }
+    }
+
+    fun exportPgn() {
+        val (whiteName, blackName) = when (gameMode) {
+            GameMode.HUMAN_VS_ENGINE -> "Human" to currentEngine.name.lowercase().replace("_", " ").capitalize()
+            GameMode.ENGINE_VS_ENGINE -> currentEngine.name.lowercase().replace("_", " ").capitalize() to
+                currentEngine.name.lowercase().replace("_", " ").capitalize()
+            GameMode.FREE_PLAY -> "White" to "Black"
+        }
+        val eventName = when (gameMode) {
+            GameMode.HUMAN_VS_ENGINE -> "Human vs Engine"
+            GameMode.ENGINE_VS_ENGINE -> "Engine vs Engine"
+            GameMode.FREE_PLAY -> "Free Play"
+        }
+        val pgnText = PgnExporter.export(
+            gameState = gameState,
+            whiteName = whiteName,
+            blackName = blackName,
+            event = "Chess Trainer - $eventName",
+            site = "Android"
+        )
+        val fileName = "chess_trainer_${timestampFormatter.format(Date())}.pgn"
+        val file = File(context.cacheDir, fileName)
+        file.writeText(pgnText)
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/x-chess-pgn"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Chess Trainer PGN")
+            putExtra(Intent.EXTRA_TEXT, "PGN export from Chess Trainer.")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share PGN"))
     }
 
     // Update available moves when selected square changes
@@ -374,7 +415,7 @@ fun GameScreen(
                         IconButton(onClick = { /* Undo move */ }, modifier = Modifier.size(36.dp)) {
                             Text("↶", fontSize = 18.sp)
                         }
-                        IconButton(onClick = { /* Export game */ }, modifier = Modifier.size(36.dp)) {
+                        IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {
                             Text("📄", fontSize = 18.sp)
                         }
                         IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {

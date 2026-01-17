@@ -176,7 +176,6 @@ fun HomeScreen(
             Text("• Real LeelaChess0/Stockfish engine integration")
             Text("• Position analysis and evaluation")
             Text("• Interactive chess lessons")
-            Text("• PGN export functionality")
             Text("• Advanced settings and preferences")
         }
     }
