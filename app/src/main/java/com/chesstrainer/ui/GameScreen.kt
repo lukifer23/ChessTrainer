@@ -12,10 +12,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstrainer.chess.*
+import com.chesstrainer.data.GameEntity
+import com.chesstrainer.data.GameRepository
+import com.chesstrainer.data.GameResultEntity
+import com.chesstrainer.data.PlayerOutcome
+import com.chesstrainer.data.PlayerRatingEntity
 import com.chesstrainer.utils.EngineType
+import com.chesstrainer.utils.EloCalculator
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 enum class GameMode {
     HUMAN_VS_ENGINE,
@@ -35,11 +40,12 @@ fun shouldEngineMove(player: com.chesstrainer.chess.Color, mode: GameMode): Bool
 fun GameScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToAnalysis: () -> Unit,
-    onNavigateToLessons: () -> Unit
+    onNavigateToLessons: () -> Unit,
+    onNavigateToScorecard: () -> Unit
 ) {
     val context = LocalContext.current
     val settings = remember { Settings(context) }
-    val coroutineScope = rememberCoroutineScope()
+    val repository = remember { GameRepository(context.applicationContext) }
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -53,6 +59,7 @@ fun GameScreen(
     var showBoard by remember { mutableStateOf(false) }
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
+    var hasRecordedGame by remember { mutableStateOf(false) }
 
     fun makeMove(move: Move) {
         try {
@@ -95,6 +102,59 @@ fun GameScreen(
                 else -> "Game over"
             }
             showGameOverDialog = true
+            if (!hasRecordedGame) {
+                hasRecordedGame = true
+                val moveList = MoveHistoryFormatter.formatMoveHistory(gameState)
+                val outcome = when (gameState.gameResult) {
+                    GameResult.WHITE_WINS -> PlayerOutcome.WIN
+                    GameResult.BLACK_WINS -> PlayerOutcome.LOSS
+                    GameResult.DRAW -> PlayerOutcome.DRAW
+                    else -> PlayerOutcome.DRAW
+                }
+                val score = when (outcome) {
+                    PlayerOutcome.WIN -> 1.0
+                    PlayerOutcome.DRAW -> 0.5
+                    PlayerOutcome.LOSS -> 0.0
+                }
+                val opponentRating = when (gameMode) {
+                    GameMode.FREE_PLAY -> 1200
+                    GameMode.HUMAN_VS_ENGINE,
+                    GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
+                        EngineType.STOCKFISH -> 1600
+                        EngineType.LEELA_CHESS_ZERO -> 1700
+                    }
+                }
+                val timestamp = System.currentTimeMillis()
+                val latestRating = repository.getLatestRating()?.ratingAfter ?: 1200
+                val updatedRating = EloCalculator.updateRating(
+                    playerRating = latestRating,
+                    opponentRating = opponentRating,
+                    score = score
+                )
+                val delta = updatedRating - latestRating
+                val engineLabel = if (gameMode == GameMode.FREE_PLAY) \"NONE\" else currentEngine.name
+
+                repository.recordCompletedGame(
+                    game = GameEntity(
+                        playedAt = timestamp,
+                        mode = gameMode.name,
+                        engineType = engineLabel,
+                        result = gameState.gameResult.name,
+                        moves = moveList.joinToString(\" \"),
+                        moveCount = gameState.moveHistory.size
+                    ),
+                    result = GameResultEntity(
+                        outcome = outcome.name,
+                        score = score
+                    ),
+                    rating = PlayerRatingEntity(
+                        ratingBefore = latestRating,
+                        ratingAfter = updatedRating,
+                        delta = delta,
+                        recordedAt = timestamp
+                    )
+                )
+            }
         }
     }
 
@@ -262,6 +322,9 @@ fun GameScreen(
                 OutlinedButton(onClick = onNavigateToLessons) {
                     Text("Learn")
                 }
+                OutlinedButton(onClick = onNavigateToScorecard) {
+                    Text("Scorecard")
+                }
             }
         }
     } else if (showBoard) {
@@ -322,6 +385,9 @@ fun GameScreen(
                         }
                         IconButton(onClick = onNavigateToLessons, modifier = Modifier.size(36.dp)) {
                             Text("📚", fontSize = 18.sp)
+                        }
+                        IconButton(onClick = onNavigateToScorecard, modifier = Modifier.size(36.dp)) {
+                            Text("🏆", fontSize = 18.sp)
                         }
                     }
                 }
@@ -416,6 +482,7 @@ fun GameScreen(
                                 lastMove = null
                                 draggedPiece = null
                                 dragOffset = Offset.Zero
+                                hasRecordedGame = false
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -426,6 +493,7 @@ fun GameScreen(
                             onClick = {
                                 gameStarted = false
                                 showBoard = false
+                                hasRecordedGame = false
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -456,6 +524,7 @@ fun GameScreen(
                         lastMove = null
                         draggedPiece = null
                         dragOffset = Offset.Zero
+                        hasRecordedGame = false
                     }) {
                         Text("New Game")
                     }
