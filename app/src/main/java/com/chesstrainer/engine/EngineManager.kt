@@ -5,9 +5,13 @@ import com.chesstrainer.chess.GameState
 import com.chesstrainer.chess.Move
 import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.*
@@ -41,6 +45,7 @@ class EngineManager(
     val responses: Flow<UCIParser.UCIResponse> = _responses.asSharedFlow()
 
     private var outputJob: Job? = null
+    private var activeSearchJob: Job? = null
 
     /**
      * Check if a process has terminated (compatible with API 24+)
@@ -257,6 +262,7 @@ class EngineManager(
         searchParams: SearchParams = SearchParams()
     ): Result<Unit> {
         if (!isReady()) return Result.failure(Exception("Engine not ready"))
+        cancelActiveSearch()
 
         // Set position first
         setPosition(gameState).getOrElse {
@@ -276,33 +282,46 @@ class EngineManager(
         }
 
         // Monitor for responses
-        scope.launch {
+        activeSearchJob = scope.launch {
             try {
-                withTimeout(searchParams.timeoutMs) {
-                    responses.collect { response ->
-                        when (response) {
-                            is UCIParser.UCIResponse.InfoResponse -> {
+                val bestMoveResponse = withTimeout(searchParams.timeoutMs) {
+                    searchResponses()
+                        .onEach { response ->
+                            if (response is UCIParser.UCIResponse.InfoResponse) {
                                 onInfo(response.info)
                             }
-                            is UCIParser.UCIResponse.BestMoveResponse -> {
-                                onBestMove(response.move)
-                                throw SearchCompleteException()
-                            }
-                            else -> {
-                                // Continue monitoring
-                            }
                         }
-                    }
-                }
+                        .first { response -> response is UCIParser.UCIResponse.BestMoveResponse }
+                } as UCIParser.UCIResponse.BestMoveResponse
+                onBestMove(bestMoveResponse.move)
             } catch (e: TimeoutCancellationException) {
                 // Search timeout - stop the search
                 stopSearch()
-            } catch (e: SearchCompleteException) {
-                // Search completed normally
+            } catch (e: CancellationException) {
+                // Search cancelled
             }
+        }.also { job ->
+            job.invokeOnCompletion { activeSearchJob = null }
         }
 
         return Result.success(Unit)
+    }
+
+    private fun searchResponses(): Flow<UCIParser.UCIResponse> = channelFlow {
+        val job = scope.launch {
+            responses.collect { response ->
+                send(response)
+            }
+        }
+        awaitClose { job.cancel() }
+    }
+
+    suspend fun cancelActiveSearch() {
+        activeSearchJob?.cancelAndJoin()
+        activeSearchJob = null
+        if (isReady()) {
+            stopSearch()
+        }
     }
 
     /**
@@ -376,6 +395,7 @@ class EngineManager(
         scope.launch {
             mutex.withLock {
                 try {
+                    cancelActiveSearch()
                     // Send quit command
                     if (isReady()) {
                         sendCommand(UCIParser.quitCommand())
@@ -433,5 +453,4 @@ class EngineManager(
     // Exception classes for control flow
     private class InitializationCompleteException : Exception()
     private class ReadyCompleteException : Exception()
-    private class SearchCompleteException : Exception()
 }
