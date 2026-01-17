@@ -42,6 +42,8 @@ class EngineManager(
 
     private var outputJob: Job? = null
 
+    fun getEngineName(): String = engineName
+
     /**
      * Check if a process has terminated (compatible with API 24+)
      */

@@ -180,36 +180,68 @@ fun GameScreen(
     }
 
     fun exportPgn() {
-        val (whiteName, blackName) = when (gameMode) {
-            GameMode.HUMAN_VS_ENGINE -> "Human" to currentEngine.name.lowercase().replace("_", " ").capitalize()
-            GameMode.ENGINE_VS_ENGINE -> currentEngine.name.lowercase().replace("_", " ").capitalize() to
-                currentEngine.name.lowercase().replace("_", " ").capitalize()
-            GameMode.FREE_PLAY -> "White" to "Black"
+        coroutineScope.launch {
+            val (whiteName, blackName) = when (gameMode) {
+                GameMode.HUMAN_VS_ENGINE -> "Human" to currentEngine.name.lowercase().replace("_", " ").capitalize()
+                GameMode.ENGINE_VS_ENGINE -> currentEngine.name.lowercase().replace("_", " ").capitalize() to
+                    currentEngine.name.lowercase().replace("_", " ").capitalize()
+                GameMode.FREE_PLAY -> "White" to "Black"
+            }
+            val eventName = when (gameMode) {
+                GameMode.HUMAN_VS_ENGINE -> "Human vs Engine"
+                GameMode.ENGINE_VS_ENGINE -> "Engine vs Engine"
+                GameMode.FREE_PLAY -> "Free Play"
+            }
+            val opponentRating = when (gameMode) {
+                GameMode.FREE_PLAY -> null
+                GameMode.HUMAN_VS_ENGINE,
+                GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
+                    EngineType.STOCKFISH -> ratingFromTable(settings.stockfishDepth, stockfishDepthRatingTable)
+                    EngineType.LEELA_CHESS_ZERO -> ratingFromTable(settings.leelaNodes, leelaNodesRatingTable)
+                }
+            }
+            val playerRating = repository.getLatestRating()?.ratingAfter ?: 1200
+            val (whiteElo, blackElo) = when (gameMode) {
+                GameMode.HUMAN_VS_ENGINE -> playerRating to opponentRating
+                GameMode.ENGINE_VS_ENGINE -> opponentRating to opponentRating
+                GameMode.FREE_PLAY -> null to null
+            }
+            val engineName = when (currentEngine) {
+                EngineType.STOCKFISH -> stockfishEngine.getEngineName()
+                EngineType.LEELA_CHESS_ZERO -> leelaEngine.getEngineName()
+            } ?: currentEngine.name
+            val engineVersion = if (gameMode == GameMode.FREE_PLAY) null else engineName
+            val (whiteEngine, blackEngine) = when (gameMode) {
+                GameMode.HUMAN_VS_ENGINE -> null to engineName
+                GameMode.ENGINE_VS_ENGINE -> engineName to engineName
+                GameMode.FREE_PLAY -> null to null
+            }
+            val pgnText = PgnExporter.export(
+                gameState = gameState,
+                whiteName = whiteName,
+                blackName = blackName,
+                event = "Chess Trainer - $eventName",
+                site = "Android",
+                timeControl = "No clock",
+                whiteElo = whiteElo,
+                blackElo = blackElo,
+                whiteEngine = whiteEngine,
+                blackEngine = blackEngine,
+                engineVersion = engineVersion
+            )
+            val fileName = "chess_trainer_${timestampFormatter.format(Date())}.pgn"
+            val file = File(context.cacheDir, fileName)
+            file.writeText(pgnText)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/x-chess-pgn"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Chess Trainer PGN")
+                putExtra(Intent.EXTRA_TEXT, "PGN export from Chess Trainer.")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share PGN"))
         }
-        val eventName = when (gameMode) {
-            GameMode.HUMAN_VS_ENGINE -> "Human vs Engine"
-            GameMode.ENGINE_VS_ENGINE -> "Engine vs Engine"
-            GameMode.FREE_PLAY -> "Free Play"
-        }
-        val pgnText = PgnExporter.export(
-            gameState = gameState,
-            whiteName = whiteName,
-            blackName = blackName,
-            event = "Chess Trainer - $eventName",
-            site = "Android"
-        )
-        val fileName = "chess_trainer_${timestampFormatter.format(Date())}.pgn"
-        val file = File(context.cacheDir, fileName)
-        file.writeText(pgnText)
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/x-chess-pgn"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Chess Trainer PGN")
-            putExtra(Intent.EXTRA_TEXT, "PGN export from Chess Trainer.")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(Intent.createChooser(shareIntent, "Share PGN"))
     }
 
     // Update available moves when selected square changes
@@ -277,6 +309,16 @@ fun GameScreen(
                 }
                 val timestamp = System.currentTimeMillis()
                 val latestRating = repository.getLatestRating()?.ratingAfter ?: 1200
+                val engineName = when (currentEngine) {
+                    EngineType.STOCKFISH -> stockfishEngine.getEngineName()
+                    EngineType.LEELA_CHESS_ZERO -> leelaEngine.getEngineName()
+                } ?: currentEngine.name
+                val engineVersion = if (gameMode == GameMode.FREE_PLAY) "N/A" else engineName
+                val (whiteElo, blackElo) = when (gameMode) {
+                    GameMode.HUMAN_VS_ENGINE -> latestRating to opponentRating
+                    GameMode.ENGINE_VS_ENGINE -> opponentRating to opponentRating
+                    GameMode.FREE_PLAY -> null to null
+                }
                 val updatedRating = EloCalculator.updateRating(
                     playerRating = latestRating,
                     opponentRating = opponentRating,
@@ -291,7 +333,11 @@ fun GameScreen(
                         mode = gameMode.name,
                         engineType = engineLabel,
                         engineConfig = engineConfig,
+                        engineVersion = engineVersion,
                         timeControl = timeControl,
+                        analysisDepth = analysisDepth,
+                        whiteElo = whiteElo,
+                        blackElo = blackElo,
                         result = gameState.gameResult.name,
                         moves = moveList.joinToString(" "),
                         moveCount = gameState.moveHistory.size
@@ -299,7 +345,11 @@ fun GameScreen(
                     result = GameResultEntity(
                         outcome = outcome.name,
                         score = score,
-                        analysisDepth = analysisDepth
+                        analysisDepth = analysisDepth,
+                        timeControl = timeControl,
+                        whiteElo = whiteElo,
+                        blackElo = blackElo,
+                        engineVersion = engineVersion
                     ),
                     rating = PlayerRatingEntity(
                         ratingBefore = latestRating,

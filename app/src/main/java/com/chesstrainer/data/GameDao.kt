@@ -22,6 +22,12 @@ interface GameDao {
     @Query("SELECT * FROM game_results ORDER BY id DESC")
     fun getResults(): Flow<List<GameResultEntity>>
 
+    @Query("SELECT * FROM games ORDER BY playedAt DESC")
+    suspend fun getGamesList(): List<GameEntity>
+
+    @Query("SELECT * FROM game_results ORDER BY id DESC")
+    suspend fun getResultsList(): List<GameResultEntity>
+
     @Query("SELECT * FROM player_ratings ORDER BY recordedAt ASC")
     fun getRatings(): Flow<List<PlayerRatingEntity>>
 

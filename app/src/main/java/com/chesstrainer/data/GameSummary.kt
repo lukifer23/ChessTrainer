@@ -1,12 +1,7 @@
 package com.chesstrainer.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
-@Entity(tableName = "games")
-data class GameEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+data class GameSummary(
+    val gameId: Long,
     val playedAt: Long,
     val mode: String,
     val engineType: String,
@@ -17,6 +12,8 @@ data class GameEntity(
     val whiteElo: Int?,
     val blackElo: Int?,
     val result: String,
-    val moves: String,
-    val moveCount: Int
+    val outcome: String?,
+    val score: Double?,
+    val moveCount: Int,
+    val moves: String
 )

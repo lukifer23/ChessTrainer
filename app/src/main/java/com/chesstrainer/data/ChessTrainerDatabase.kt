@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [GameEntity::class, GameResultEntity::class, PlayerRatingEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class ChessTrainerDatabase : RoomDatabase() {

@@ -23,5 +23,9 @@ data class GameResultEntity(
     val gameId: Long = 0,
     val outcome: String,
     val score: Double,
-    val analysisDepth: String
+    val analysisDepth: String,
+    val timeControl: String,
+    val whiteElo: Int?,
+    val blackElo: Int?,
+    val engineVersion: String
 )
