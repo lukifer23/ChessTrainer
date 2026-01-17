@@ -488,7 +488,7 @@ fun GameScreen(
                     lastMove = lastMove,
                     draggedPiece = draggedPiece,
                     dragOffset = dragOffset,
-                    boardOrientation = Color.WHITE,
+                    boardOrientation = settings.boardOrientation,
                     onSquareClick = ::onSquareClick,
                     onDragStart = ::onDragStart,
                     onDragEnd = ::onDragEnd

@@ -135,18 +135,22 @@ private fun positionToSquare(position: Offset, canvasSize: IntSize, boardOrienta
     val offsetX = (canvasSize.width.toFloat() - boardSize) / 2f
     val offsetY = (canvasSize.height.toFloat() - boardSize) / 2f
 
-    val file = ((position.x - offsetX) / squareSize).toInt()
-    val rank = ((position.y - offsetY) / squareSize).toInt()
+    val displayFile = ((position.x - offsetX) / squareSize).toInt()
+    val displayRank = ((position.y - offsetY) / squareSize).toInt()
 
-    // Flip rank if black is at bottom
-    val actualRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) {
-        7 - rank
+    val actualFile = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) {
+        displayFile
     } else {
-        rank
+        7 - displayFile
+    }
+    val actualRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) {
+        7 - displayRank
+    } else {
+        displayRank
     }
 
-    return if (file in 0..7 && actualRank in 0..7) {
-        Square(file, actualRank)
+    return if (actualFile in 0..7 && actualRank in 0..7) {
+        Square(actualFile, actualRank)
     } else {
         null
     }
@@ -189,8 +193,9 @@ private fun DrawScope.drawBoard(
             }
 
             // Calculate position (accounting for orientation)
+            val displayFile = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) file else 7 - file
             val displayRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 - rank else rank
-            val x = file * squareSize
+            val x = displayFile * squareSize
             val y = displayRank * squareSize
 
             // Draw square
