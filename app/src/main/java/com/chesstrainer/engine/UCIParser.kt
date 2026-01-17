@@ -248,10 +248,82 @@ class UCIParser {
         }
 
         private fun parseOptionResponse(parts: List<String>): UCIResponse {
-            // Basic option parsing - can be extended for full UCI option support
+            val keywords = setOf("name", "type", "default", "min", "max", "var")
+            fun readValue(startIndex: Int): Pair<String, Int> {
+                if (startIndex >= parts.size) return "" to parts.size
+                val values = mutableListOf<String>()
+                var index = startIndex
+                while (index < parts.size && parts[index] !in keywords) {
+                    values.add(parts[index])
+                    index++
+                }
+                return values.joinToString(" ") to index
+            }
+
+            var name = ""
+            var type = OptionType.STRING
+            var defaultValue: Any? = null
+            var minValue: Any? = null
+            var maxValue: Any? = null
+            val optionValues = mutableListOf<String>()
+
+            var i = 1
+            while (i < parts.size) {
+                when (parts[i]) {
+                    "name" -> {
+                        val (value, nextIndex) = readValue(i + 1)
+                        name = value
+                        i = nextIndex
+                    }
+                    "type" -> {
+                        val rawType = parts.getOrNull(i + 1)
+                        type = when (rawType?.lowercase()) {
+                            "check" -> OptionType.CHECK
+                            "spin" -> OptionType.SPIN
+                            "combo" -> OptionType.COMBO
+                            "button" -> OptionType.BUTTON
+                            "string" -> OptionType.STRING
+                            else -> OptionType.STRING
+                        }
+                        i += 2
+                    }
+                    "default" -> {
+                        val (value, nextIndex) = readValue(i + 1)
+                        defaultValue = when (type) {
+                            OptionType.SPIN -> value.toIntOrNull() ?: value
+                            OptionType.CHECK -> value.equals("true", ignoreCase = true)
+                            else -> value
+                        }
+                        i = nextIndex
+                    }
+                    "min" -> {
+                        val value = parts.getOrNull(i + 1)
+                        minValue = value?.toIntOrNull() ?: value
+                        i += 2
+                    }
+                    "max" -> {
+                        val value = parts.getOrNull(i + 1)
+                        maxValue = value?.toIntOrNull() ?: value
+                        i += 2
+                    }
+                    "var" -> {
+                        val (value, nextIndex) = readValue(i + 1)
+                        if (value.isNotBlank()) {
+                            optionValues.add(value)
+                        }
+                        i = nextIndex
+                    }
+                    else -> i++
+                }
+            }
+
             val option = UCIOption(
-                name = parts.getOrNull(2) ?: "",
-                type = OptionType.STRING // Default, can be refined
+                name = name,
+                type = type,
+                default = defaultValue,
+                min = minValue,
+                max = maxValue,
+                options = optionValues
             )
             return UCIResponse.OptionResponse(option)
         }

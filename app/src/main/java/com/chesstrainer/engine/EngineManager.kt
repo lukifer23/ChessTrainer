@@ -34,6 +34,7 @@ class EngineManager(
     private var isEngineReady = false
     private var engineName = "Unknown Engine"
     private var lc0WeightsFile: File? = null
+    private val uciOptions = mutableMapOf<String, UCIParser.UCIOption>()
 
     private val installer = EngineInstaller(context)
 
@@ -68,6 +69,8 @@ class EngineManager(
                 android.util.Log.d("EngineManager", "Engine already running")
                 return Result.success(Unit)
             }
+
+            uciOptions.clear()
 
             // Ensure engine binary (and weights, if needed) are installed
             android.util.Log.d("EngineManager", "Ensuring engine is installed")
@@ -148,6 +151,17 @@ class EngineManager(
                 is UCIParser.UCIResponse.ReadyOkResponse -> {
                     // Engine is ready for commands
                     isEngineReady = true
+                }
+                is UCIParser.UCIResponse.OptionResponse -> {
+                    val optionName = response.option.name.trim()
+                    if (optionName.isNotBlank()) {
+                        uciOptions[optionName.lowercase()] = response.option
+                        if (optionName.equals("Backend", ignoreCase = true) &&
+                            response.option.options.isNotEmpty()
+                        ) {
+                            settings.lc0BackendOptions = response.option.options.toSet()
+                        }
+                    }
                 }
                 is UCIParser.UCIResponse.ErrorResponse -> {
                     // Log error
@@ -334,24 +348,36 @@ class EngineManager(
             com.chesstrainer.utils.EngineType.LEELA_CHESS_ZERO -> {
                 // Leela-specific options
                 settings.leelaNodes.takeIf { it > 0 }?.let { nodes ->
-                    results.add(setOption("MaxNodes", nodes))
+                    if (supportsOption("MaxNodes")) {
+                        results.add(setOption("MaxNodes", nodes))
+                    }
                 }
                 val availableThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                 val lc0Threads = settings.lc0Threads.coerceIn(1, availableThreads)
-                results.add(setOption("Threads", lc0Threads))
+                if (supportsOption("Threads")) {
+                    results.add(setOption("Threads", lc0Threads))
+                }
                 settings.lc0Backend.trim().takeIf { it.isNotEmpty() }?.let { backend ->
-                    results.add(setOption("Backend", backend))
+                    if (supportsOption("Backend", backend)) {
+                        results.add(setOption("Backend", backend))
+                    }
                 }
                 lc0WeightsFile?.let { weights ->
-                    results.add(setOption("WeightsFile", weights.absolutePath))
+                    if (supportsOption("WeightsFile")) {
+                        results.add(setOption("WeightsFile", weights.absolutePath))
+                    }
                 } ?: return Result.failure(Exception("LC0 weights file missing."))
             }
             com.chesstrainer.utils.EngineType.STOCKFISH -> {
                 // Stockfish-specific options
                 settings.stockfishDepth.takeIf { it > 0 }?.let { depth ->
-                    results.add(setOption("Skill Level", depth))
+                    if (supportsOption("Skill Level")) {
+                        results.add(setOption("Skill Level", depth))
+                    }
                 }
-                results.add(setOption("Threads", Runtime.getRuntime().availableProcessors()))
+                if (supportsOption("Threads")) {
+                    results.add(setOption("Threads", Runtime.getRuntime().availableProcessors()))
+                }
             }
         }
 
@@ -368,6 +394,15 @@ class EngineManager(
      * Get engine information
      */
     fun getEngineName(): String = engineName
+
+    private fun supportsOption(name: String, value: Any? = null): Boolean {
+        val option = uciOptions[name.lowercase()] ?: return false
+        if (value != null && option.type == UCIParser.OptionType.COMBO && option.options.isNotEmpty()) {
+            val valueString = value.toString()
+            return option.options.any { it.equals(valueString, ignoreCase = true) }
+        }
+        return true
+    }
 
     /**
      * Clean up resources
