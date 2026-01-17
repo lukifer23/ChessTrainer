@@ -45,6 +45,20 @@ class EngineInstaller(private val context: Context) {
     private val baseDir = File(context.filesDir, "engines")
 
     fun getStatus(engineType: EngineType): EngineStatus {
+        if (engineType == EngineType.GGUF) {
+            val settings = com.chesstrainer.utils.Settings(context)
+            val path = settings.ggufModelPath
+            val exists = path?.let { File(it).exists() } == true
+            return EngineStatus(
+                engineType,
+                engineAvailable = true, // Assumed available or not needed
+                weightsAvailable = exists,
+                enginePath = null,
+                weightsPath = path,
+                statusMessage = if (exists) "Model Ready" else "Model Path Missing",
+                unsupportedAbiMessage = null
+            )
+        }
         val abi = findSupportedAbi(engineType)
         val unsupportedMessage = unsupportedAbiMessage(engineType)
         val engineFile = abi?.let { resolveEngineBinary(engineType, it) }
@@ -62,6 +76,7 @@ class EngineInstaller(private val context: Context) {
             engineType == EngineType.LEELA_CHESS_ZERO && !weightsAvailable -> "Network weights missing"
             else -> "Not installed"
         }
+        android.util.Log.d("EngineInstaller", "Status for $engineType: $statusMessage (Engine: $engineAvailable, Weights: $weightsAvailable, ABI: $abi)")
         return EngineStatus(
             engineType = engineType,
             engineAvailable = engineAvailable,
@@ -78,6 +93,18 @@ class EngineInstaller(private val context: Context) {
         onStatusUpdate: (String) -> Unit = {}
     ): Result<InstalledAssets> = withContext(Dispatchers.IO) {
         try {
+            if (engineType == EngineType.GGUF) {
+                val settings = com.chesstrainer.utils.Settings(context)
+                val path = settings.ggufModelPath
+                return@withContext if (!path.isNullOrBlank() && File(path).exists()) {
+                    // For GGUF, we currently rely on the model path as the primary asset.
+                    // The "binary" is a placeholder until we have a bundled executor or user setting.
+                    Result.success(InstalledAssets(File("/dev/null"), File(path)))
+                } else {
+                    Result.failure(Exception("GGUF Model path not set or invalid."))
+                }
+            }
+
             baseDir.mkdirs()
             val abi = findSupportedAbi(engineType)
                 ?: return@withContext Result.failure(
@@ -90,12 +117,17 @@ class EngineInstaller(private val context: Context) {
             if (!engineBinary.exists() || !engineBinary.canExecute() || !isExecutableBinary(engineBinary)) {
                 onStatusUpdate("Downloading ${engineSpec.label}...")
                 downloadAndVerify(engineSpec, engineBinary, onStatusUpdate)
-                if (!engineBinary.setExecutable(true)) {
-                    return@withContext Result.failure(Exception("Failed to mark engine binary executable."))
-                }
+                ensureExecutable(engineBinary)
+
                 if (!isExecutableBinary(engineBinary)) {
-                    return@withContext Result.failure(Exception("Downloaded engine binary is not executable."))
+                     // Check one last time if it's executable via file system
+                     if (!engineBinary.canExecute()) {
+                        return@withContext Result.failure(Exception("Downloaded engine binary is not executable (chmod failed)."))
+                     }
                 }
+            } else {
+                // Ensure executable permissions even for existing files
+                ensureExecutable(engineBinary)
             }
 
             val weightsFile = if (engineType == EngineType.LEELA_CHESS_ZERO) {
@@ -117,6 +149,38 @@ class EngineInstaller(private val context: Context) {
         }
     }
 
+    private fun ensureExecutable(file: File) {
+        try {
+            android.util.Log.d("EngineInstaller", "Attempting to make executable: ${file.absolutePath}")
+            
+            // 1. Java API
+            if (file.setExecutable(true, false)) { // owner only = false (all)
+                android.util.Log.d("EngineInstaller", "Java setExecutable(true) returned true")
+            } else {
+                android.util.Log.w("EngineInstaller", "Java setExecutable(true) returned false")
+            }
+
+            // 2. Shell chmod 755
+            val process = ProcessBuilder("chmod", "755", file.absolutePath)
+                .redirectErrorStream(true)
+                .start()
+            
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            
+            if (exitCode == 0) {
+                android.util.Log.d("EngineInstaller", "chmod 755 success")
+            } else {
+                android.util.Log.e("EngineInstaller", "chmod 755 failed (exit $exitCode): $output")
+                if (output.contains("Operation not permitted") || output.contains("Permission denied")) {
+                     android.util.Log.e("EngineInstaller", "System appears to block chmod (W^X violation likely).")
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("EngineInstaller", "Failed to set executable permissions", e)
+        }
+    }
+
     private fun findSupportedAbi(engineType: EngineType): String? {
         val candidates = supportedAbis(engineType)
         return Build.SUPPORTED_ABIS.firstOrNull { abi -> abi in candidates }
@@ -126,6 +190,7 @@ class EngineInstaller(private val context: Context) {
         return when (engineType) {
             EngineType.STOCKFISH -> stockfishDownloadSpecs().keys
             EngineType.LEELA_CHESS_ZERO -> lc0DownloadSpecs().keys
+            EngineType.GGUF -> emptySet()
         }.toSet()
     }
 
@@ -156,6 +221,7 @@ class EngineInstaller(private val context: Context) {
         return when (engineType) {
             EngineType.STOCKFISH -> "stockfish"
             EngineType.LEELA_CHESS_ZERO -> "lc0"
+            EngineType.GGUF -> "gguf-engine"
         }
     }
 
@@ -163,6 +229,7 @@ class EngineInstaller(private val context: Context) {
         return when (engineType) {
             EngineType.STOCKFISH -> stockfishDownloadSpecs()[abi]
             EngineType.LEELA_CHESS_ZERO -> lc0DownloadSpecs()[abi]
+            EngineType.GGUF -> null
         }
     }
 
@@ -366,10 +433,14 @@ class EngineInstaller(private val context: Context) {
                 if (!isElf) {
                     return false
                 }
+
                 val type = (header[16].toInt() and 0xff) or ((header[17].toInt() and 0xff) shl 8)
-                type == 2 || type == 3
+                val isExe = type == 2 || type == 3
+                if (!isExe) android.util.Log.e("EngineInstaller", "Binary ${file.name} is not executable (ELF type $type)")
+                isExe
             }
         } catch (e: Exception) {
+            android.util.Log.e("EngineInstaller", "Failed to check executable status for ${file.name}", e)
             false
         }
     }

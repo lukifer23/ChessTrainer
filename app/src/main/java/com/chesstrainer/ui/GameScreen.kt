@@ -22,6 +22,7 @@ import com.chesstrainer.data.PlayerOutcome
 import com.chesstrainer.data.PlayerRatingEntity
 import com.chesstrainer.engine.LeelaEngine
 import com.chesstrainer.engine.StockfishEngine
+import com.chesstrainer.engine.GGUFEngine
 import com.chesstrainer.export.PgnExporter
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.EloCalculator
@@ -89,6 +90,7 @@ fun GameScreen(
     val repository = remember { GameRepository(context.applicationContext) }
     val stockfishEngine = remember { StockfishEngine(context, settings) }
     val leelaEngine = remember { LeelaEngine(context, settings) }
+    val ggufEngine = remember { GGUFEngine(context, settings) }
 
     var gameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
@@ -96,7 +98,6 @@ fun GameScreen(
     var availableMoves by remember { mutableStateOf<List<Move>>(emptyList()) }
     var lastMove by remember { mutableStateOf<Move?>(null) }
     var draggedPiece by remember { mutableStateOf<Square?>(null) }
-    var dragOffset by remember { mutableStateOf(Offset.Zero) }
     var showGameOverDialog by remember { mutableStateOf(false) }
     var gameOverMessage by remember { mutableStateOf("") }
     var showBoard by remember { mutableStateOf(false) }
@@ -115,6 +116,7 @@ fun GameScreen(
         onDispose {
             stockfishEngine.cleanup()
             leelaEngine.cleanup()
+            ggufEngine.cleanup()
         }
     }
 
@@ -130,7 +132,6 @@ fun GameScreen(
                 selectedSquare = null
                 availableMoves = emptyList()
                 draggedPiece = null
-                dragOffset = Offset.Zero
                 android.util.Log.d("GameScreen", "Game state updated. Current player was ${oldGameState.currentPlayer}, now ${newGameState.currentPlayer}")
             } else {
                 android.util.Log.e("GameScreen", "Move is invalid: $move")
@@ -138,7 +139,6 @@ fun GameScreen(
         } catch (e: Exception) {
             android.util.Log.e("GameScreen", "Error making move", e)
             draggedPiece = null
-            dragOffset = Offset.Zero
         }
     }
 
@@ -159,7 +159,6 @@ fun GameScreen(
         selectedSquare = null
         availableMoves = emptyList()
         draggedPiece = null
-        dragOffset = Offset.Zero
     }
 
     fun startGameWithMode(mode: GameMode) {
@@ -198,6 +197,7 @@ fun GameScreen(
                 GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
                     EngineType.STOCKFISH -> ratingFromTable(settings.stockfishDepth, stockfishDepthRatingTable)
                     EngineType.LEELA_CHESS_ZERO -> ratingFromTable(settings.leelaNodes, leelaNodesRatingTable)
+                    EngineType.GGUF -> 1500 // Placeholder ELO for GGUF models
                 }
             }
             val playerRating = repository.getLatestRating()?.ratingAfter ?: 1200
@@ -209,6 +209,7 @@ fun GameScreen(
             val engineName = when (currentEngine) {
                 EngineType.STOCKFISH -> stockfishEngine.getEngineName()
                 EngineType.LEELA_CHESS_ZERO -> leelaEngine.getEngineName()
+                EngineType.GGUF -> ggufEngine.getEngineName()
             } ?: currentEngine.name
             val engineVersion = if (gameMode == GameMode.FREE_PLAY) null else engineName
             val (whiteEngine, blackEngine) = when (gameMode) {
@@ -287,6 +288,7 @@ fun GameScreen(
                     GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
                         EngineType.STOCKFISH -> ratingFromTable(settings.stockfishDepth, stockfishDepthRatingTable)
                         EngineType.LEELA_CHESS_ZERO -> ratingFromTable(settings.leelaNodes, leelaNodesRatingTable)
+                        EngineType.GGUF -> 1500
                     }
                 }
                 val timeControl = "No clock"
@@ -297,6 +299,7 @@ fun GameScreen(
                         EngineType.STOCKFISH -> "Depth ${settings.stockfishDepth}"
                         EngineType.LEELA_CHESS_ZERO ->
                             "Nodes ${settings.leelaNodes} • Threads ${settings.lc0Threads} • ${settings.lc0Backend.uppercase()}"
+                        EngineType.GGUF -> "Model: ${File(settings.ggufModelPath ?: "").name}"
                     }
                 }
                 val analysisDepth = when (gameMode) {
@@ -305,6 +308,7 @@ fun GameScreen(
                     GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
                         EngineType.STOCKFISH -> "Depth ${settings.stockfishDepth}"
                         EngineType.LEELA_CHESS_ZERO -> "Nodes ${settings.leelaNodes}"
+                        EngineType.GGUF -> "Time 5s"
                     }
                 }
                 val timestamp = System.currentTimeMillis()
@@ -312,6 +316,7 @@ fun GameScreen(
                 val engineName = when (currentEngine) {
                     EngineType.STOCKFISH -> stockfishEngine.getEngineName()
                     EngineType.LEELA_CHESS_ZERO -> leelaEngine.getEngineName()
+                    EngineType.GGUF -> ggufEngine.getEngineName()
                 } ?: currentEngine.name
                 val engineVersion = if (gameMode == GameMode.FREE_PLAY) "N/A" else engineName
                 val (whiteElo, blackElo) = when (gameMode) {
@@ -362,11 +367,12 @@ fun GameScreen(
         }
     }
 
-    // Initialize engines when game starts
-    LaunchedEffect(gameStarted, gameMode, currentEngine, engineInitAttempt) {
-        if (!gameStarted || !requiresEngine(gameMode)) {
+    // Initialize engines when needed
+    LaunchedEffect(gameMode, currentEngine, engineInitAttempt) {
+        if (!requiresEngine(gameMode)) {
             engineStartupInProgress = false
             engineStartupStatus = null
+            engineReady = false
             return@LaunchedEffect
         }
         if (engineReady || engineStartupInProgress) {
@@ -378,14 +384,21 @@ fun GameScreen(
         engineStartupStatus = "Preparing engine..."
         engineReady = false
 
-        val engine = when (currentEngine) {
-            EngineType.STOCKFISH -> stockfishEngine
-            EngineType.LEELA_CHESS_ZERO -> leelaEngine
-        }
-
-        val result = engine.initialize { status ->
-            coroutineScope.launch(Dispatchers.Main) {
-                engineStartupStatus = status
+        val result = when (currentEngine) {
+            EngineType.STOCKFISH -> stockfishEngine.initialize { status: String ->
+                coroutineScope.launch(Dispatchers.Main) {
+                    engineStartupStatus = status
+                }
+            }
+            EngineType.LEELA_CHESS_ZERO -> leelaEngine.initialize { status: String ->
+                coroutineScope.launch(Dispatchers.Main) {
+                    engineStartupStatus = status
+                }
+            }
+            EngineType.GGUF -> ggufEngine.initialize { status: String ->
+                coroutineScope.launch(Dispatchers.Main) {
+                    engineStartupStatus = status
+                }
             }
         }
         engineStartupInProgress = false
@@ -405,6 +418,7 @@ fun GameScreen(
             val engine = when (currentEngine) {
                 EngineType.STOCKFISH -> stockfishEngine
                 EngineType.LEELA_CHESS_ZERO -> leelaEngine
+                EngineType.GGUF -> ggufEngine
             }
 
             // Add a small delay to prevent rapid successive calls and allow UI to update
@@ -426,6 +440,7 @@ fun GameScreen(
                 },
                 onError = { error ->
                     coroutineScope.launch(Dispatchers.Main) {
+                        android.util.Log.e("GameScreen", "Engine error: ${error.message}")
                         engineStartupError = error.message ?: "Engine failed while thinking."
                         engineReady = false
                     }
@@ -458,14 +473,12 @@ fun GameScreen(
             } else {
                 // Invalid drop - reset drag state
                 draggedPiece = null
-                dragOffset = Offset.Zero
                 selectedSquare = null
                 availableMoves = emptyList()
             }
         } else {
             // Dropped outside board - reset drag state
             draggedPiece = null
-            dragOffset = Offset.Zero
             selectedSquare = null
             availableMoves = emptyList()
         }
@@ -608,8 +621,8 @@ fun GameScreen(
                         Column {
                             Text(
                                 text = when (gameMode) {
-                                    GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()}"
-                                    GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()} vs ${currentEngine.name.lowercase().replace(\"_\", \" \").capitalize()}"
+                                    GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                    GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
                                     GameMode.FREE_PLAY -> "Free Play"
                                 },
                                 style = MaterialTheme.typography.subtitle1,
@@ -619,6 +632,7 @@ fun GameScreen(
                                 text = when (currentEngine) {
                                     EngineType.LEELA_CHESS_ZERO -> "Neural Network • ${settings.leelaNodes} nodes/move"
                                     EngineType.STOCKFISH -> "Traditional Engine • Depth ${settings.stockfishDepth}"
+                                    EngineType.GGUF -> "GGUF Model • ${File(settings.ggufModelPath ?: "").name}"
                                 },
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
@@ -653,11 +667,14 @@ fun GameScreen(
                     }
                 }
 
-                // Chess board
+
+
+                // Chess board container with proper centering
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 16.dp),
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     ChessBoard(
@@ -666,11 +683,11 @@ fun GameScreen(
                         availableMoves = availableMoves,
                         lastMove = lastMove,
                         draggedPiece = draggedPiece,
-                        dragOffset = dragOffset,
                         boardOrientation = settings.boardOrientation,
                         onSquareClick = ::onSquareClick,
                         onDragStart = ::onDragStart,
-                        onDragEnd = ::onDragEnd
+                        onDragEnd = ::onDragEnd,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
@@ -741,7 +758,6 @@ fun GameScreen(
                                     availableMoves = emptyList()
                                     lastMove = null
                                     draggedPiece = null
-                                    dragOffset = Offset.Zero
                                     hasRecordedGame = false
                                     if (requiresEngine(gameMode) && !engineReady) {
                                         engineStartupError = null
@@ -809,12 +825,20 @@ fun GameScreen(
                                     style = MaterialTheme.typography.body2
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedButton(onClick = {
-                                    engineStartupError = null
-                                    engineStartupStatus = null
-                                    engineInitAttempt += 1
-                                }) {
-                                    Text("Retry")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     OutlinedButton(onClick = {
+                                         engineStartupError = null
+                                         engineStartupStatus = null
+                                         engineInitAttempt += 1
+                                     }) {
+                                         Text("Retry")
+                                     }
+                                     Button(onClick = {
+                                         // Fallback to Free Play
+                                         startGameWithMode(GameMode.FREE_PLAY)
+                                     }) {
+                                         Text("Use Free Play")
+                                     }
                                 }
                             }
                         }
@@ -842,7 +866,6 @@ fun GameScreen(
                         availableMoves = emptyList()
                         lastMove = null
                         draggedPiece = null
-                        dragOffset = Offset.Zero
                         hasRecordedGame = false
                         if (requiresEngine(gameMode) && !engineReady) {
                             engineStartupError = null

@@ -4,7 +4,7 @@ package com.chesstrainer.engine;
  * Manages chess engine processes and UCI communication.
  * Handles engine lifecycle, binary extraction, and thread-safe communication.
  */
-@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\u0094\u0001\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0016\n\u0002\u0018\u0002\n\u0002\b\u0007\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\b\u0018\u00002\u00020\u0001:\u0003NOPB\u0015\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\u0002\u0010\u0006J\u0006\u0010\"\u001a\u00020#J\u001c\u0010$\u001a\b\u0012\u0004\u0012\u00020#0%H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b&\u0010\'J\u0006\u0010(\u001a\u00020\u000bJ\b\u0010)\u001a\u0004\u0018\u00010\u0011J\u000e\u0010*\u001a\u00020#H\u0082@\u00a2\u0006\u0002\u0010\'J\u0010\u0010+\u001a\u00020\u000f2\u0006\u0010\u0016\u001a\u00020\u0017H\u0002J\u0006\u0010,\u001a\u00020\u000fJ\u001c\u0010-\u001a\b\u0012\u0004\u0012\u00020#0%H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b.\u0010\'J\u0016\u0010/\u001a\u00020#2\u0006\u00100\u001a\u00020\u000bH\u0082@\u00a2\u0006\u0002\u00101J$\u00102\u001a\b\u0012\u0004\u0012\u00020#0%2\u0006\u00103\u001a\u00020\u000bH\u0082@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b4\u00101J,\u00105\u001a\b\u0012\u0004\u0012\u00020#0%2\u0006\u00106\u001a\u00020\u000b2\u0006\u00107\u001a\u00020\u0001H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b8\u00109J$\u0010:\u001a\b\u0012\u0004\u0012\u00020#0%2\u0006\u0010;\u001a\u00020<H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b=\u0010>J\u001c\u0010?\u001a\b\u0012\u0004\u0012\u00020#0%H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b@\u0010\'J\b\u0010A\u001a\u00020#H\u0002JX\u0010B\u001a\b\u0012\u0004\u0012\u00020#0%2\u0006\u0010;\u001a\u00020<2\u0012\u0010C\u001a\u000e\u0012\u0004\u0012\u00020E\u0012\u0004\u0012\u00020#0D2\u0014\b\u0002\u0010F\u001a\u000e\u0012\u0004\u0012\u00020G\u0012\u0004\u0012\u00020#0D2\b\b\u0002\u0010H\u001a\u00020IH\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bJ\u0010KJ\u001c\u0010L\u001a\b\u0012\u0004\u0012\u00020#0%H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bM\u0010\'R\u0014\u0010\u0007\u001a\b\u0012\u0004\u0012\u00020\t0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\f\u001a\u00020\rX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u000e\u001a\u00020\u000fX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0010\u001a\u0004\u0018\u00010\u0011X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0012\u001a\u00020\u0013X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0014\u001a\u0004\u0018\u00010\u0015X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0016\u001a\u0004\u0018\u00010\u0017X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0018\u001a\u0004\u0018\u00010\u0019X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0017\u0010\u001a\u001a\b\u0012\u0004\u0012\u00020\t0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001c\u0010\u001dR\u000e\u0010\u001e\u001a\u00020\u001fX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010 \u001a\u0004\u0018\u00010!X\u0082\u000e\u00a2\u0006\u0002\n\u0000\u0082\u0002\u000b\n\u0002\b!\n\u0005\b\u00a1\u001e0\u0001\u00a8\u0006Q"}, d2 = {"Lcom/chesstrainer/engine/EngineManager;", "", "context", "Landroid/content/Context;", "settings", "Lcom/chesstrainer/utils/Settings;", "(Landroid/content/Context;Lcom/chesstrainer/utils/Settings;)V", "_responses", "Lkotlinx/coroutines/flow/MutableSharedFlow;", "Lcom/chesstrainer/engine/UCIParser$UCIResponse;", "engineName", "", "installer", "Lcom/chesstrainer/engine/EngineInstaller;", "isEngineReady", "", "lc0WeightsFile", "Ljava/io/File;", "mutex", "Lkotlinx/coroutines/sync/Mutex;", "outputJob", "Lkotlinx/coroutines/Job;", "process", "Ljava/lang/Process;", "reader", "Ljava/io/BufferedReader;", "responses", "Lkotlinx/coroutines/flow/Flow;", "getResponses", "()Lkotlinx/coroutines/flow/Flow;", "scope", "Lkotlinx/coroutines/CoroutineScope;", "writer", "Ljava/io/BufferedWriter;", "cleanup", "", "configureEngine", "Lkotlin/Result;", "configureEngine-IoAF18A", "(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "getEngineName", "getLc0WeightsFile", "initializeEngine", "isProcessTerminated", "isReady", "newGame", "newGame-IoAF18A", "processLine", "line", "(Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "sendCommand", "command", "sendCommand-gIAlu-s", "setOption", "name", "value", "setOption-0E7RQCE", "(Ljava/lang/String;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "setPosition", "gameState", "Lcom/chesstrainer/chess/GameState;", "setPosition-gIAlu-s", "(Lcom/chesstrainer/chess/GameState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "startEngine", "startEngine-IoAF18A", "startOutputMonitoring", "startSearch", "onBestMove", "Lkotlin/Function1;", "Lcom/chesstrainer/chess/Move;", "onInfo", "Lcom/chesstrainer/engine/UCIParser$EngineInfo;", "searchParams", "Lcom/chesstrainer/engine/EngineManager$SearchParams;", "startSearch-yxL6bBk", "(Lcom/chesstrainer/chess/GameState;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lcom/chesstrainer/engine/EngineManager$SearchParams;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "stopSearch", "stopSearch-IoAF18A", "InitializationCompleteException", "SearchCompleteException", "SearchParams", "app_debug"})
+@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\u00a6\u0001\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010%\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\u0016\n\u0002\u0018\u0002\n\u0002\b\u0004\n\u0002\u0018\u0002\n\u0002\b\u0005\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\n\u0018\u00002\u00020\u0001:\u0003XYZB\u0015\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\u0002\u0010\u0006J\u000e\u0010&\u001a\u00020\'H\u0086@\u00a2\u0006\u0002\u0010(J\u0006\u0010)\u001a\u00020\'J\u001c\u0010*\u001a\b\u0012\u0004\u0012\u00020\'0+H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b,\u0010(J\u0006\u0010-\u001a\u00020\rJ\b\u0010.\u001a\u0004\u0018\u00010\u0013J\u000e\u0010/\u001a\u00020\'H\u0082@\u00a2\u0006\u0002\u0010(J\u0010\u00100\u001a\u00020\u00112\u0006\u0010\u0017\u001a\u00020\u0018H\u0002J\u0006\u00101\u001a\u00020\u0011J\u001c\u00102\u001a\b\u0012\u0004\u0012\u00020\'0+H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b3\u0010(J\u0016\u00104\u001a\u00020\'2\u0006\u00105\u001a\u00020\rH\u0082@\u00a2\u0006\u0002\u00106J\u000e\u00107\u001a\b\u0012\u0004\u0012\u00020\t0\u001cH\u0002J$\u00108\u001a\b\u0012\u0004\u0012\u00020\'0+2\u0006\u00109\u001a\u00020\rH\u0082@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b:\u00106J,\u0010;\u001a\b\u0012\u0004\u0012\u00020\'0+2\u0006\u0010<\u001a\u00020\r2\u0006\u0010=\u001a\u00020\u0001H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\b>\u0010?J$\u0010@\u001a\b\u0012\u0004\u0012\u00020\'0+2\u0006\u0010A\u001a\u00020BH\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bC\u0010DJ2\u0010E\u001a\b\u0012\u0004\u0012\u00020\'0+2\u0014\b\u0002\u0010F\u001a\u000e\u0012\u0004\u0012\u00020\r\u0012\u0004\u0012\u00020\'0GH\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bH\u0010IJ\b\u0010J\u001a\u00020\'H\u0002JX\u0010K\u001a\b\u0012\u0004\u0012\u00020\'0+2\u0006\u0010A\u001a\u00020B2\u0012\u0010L\u001a\u000e\u0012\u0004\u0012\u00020M\u0012\u0004\u0012\u00020\'0G2\u0014\b\u0002\u0010N\u001a\u000e\u0012\u0004\u0012\u00020O\u0012\u0004\u0012\u00020\'0G2\b\b\u0002\u0010P\u001a\u00020QH\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bR\u0010SJ\u001c\u0010T\u001a\b\u0012\u0004\u0012\u00020\'0+H\u0086@\u00f8\u0001\u0000\u00f8\u0001\u0001\u00a2\u0006\u0004\bU\u0010(J\u001c\u0010V\u001a\u00020\u00112\u0006\u0010<\u001a\u00020\r2\n\b\u0002\u0010=\u001a\u0004\u0018\u00010\u0001H\u0002J\u000e\u0010W\u001a\u00020\'H\u0082@\u00a2\u0006\u0002\u0010(R\u0014\u0010\u0007\u001a\b\u0012\u0004\u0012\u00020\t0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010\n\u001a\u0004\u0018\u00010\u000bX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\f\u001a\u00020\rX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u000e\u001a\u00020\u000fX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0010\u001a\u00020\u0011X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0012\u001a\u0004\u0018\u00010\u0013X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0014\u001a\u00020\u0015X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0016\u001a\u0004\u0018\u00010\u000bX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0017\u001a\u0004\u0018\u00010\u0018X\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0019\u001a\u0004\u0018\u00010\u001aX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0017\u0010\u001b\u001a\b\u0012\u0004\u0012\u00020\t0\u001c\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001d\u0010\u001eR\u000e\u0010\u001f\u001a\u00020 X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u001a\u0010!\u001a\u000e\u0012\u0004\u0012\u00020\r\u0012\u0004\u0012\u00020#0\"X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010$\u001a\u0004\u0018\u00010%X\u0082\u000e\u00a2\u0006\u0002\n\u0000\u0082\u0002\u000b\n\u0002\b!\n\u0005\b\u00a1\u001e0\u0001\u00a8\u0006["}, d2 = {"Lcom/chesstrainer/engine/EngineManager;", "", "context", "Landroid/content/Context;", "settings", "Lcom/chesstrainer/utils/Settings;", "(Landroid/content/Context;Lcom/chesstrainer/utils/Settings;)V", "_responses", "Lkotlinx/coroutines/flow/MutableSharedFlow;", "Lcom/chesstrainer/engine/UCIParser$UCIResponse;", "activeSearchJob", "Lkotlinx/coroutines/Job;", "engineName", "", "installer", "Lcom/chesstrainer/engine/EngineInstaller;", "isEngineReady", "", "lc0WeightsFile", "Ljava/io/File;", "mutex", "Lkotlinx/coroutines/sync/Mutex;", "outputJob", "process", "Ljava/lang/Process;", "reader", "Ljava/io/BufferedReader;", "responses", "Lkotlinx/coroutines/flow/Flow;", "getResponses", "()Lkotlinx/coroutines/flow/Flow;", "scope", "Lkotlinx/coroutines/CoroutineScope;", "uciOptions", "", "Lcom/chesstrainer/engine/UCIParser$UCIOption;", "writer", "Ljava/io/BufferedWriter;", "cancelActiveSearch", "", "(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "cleanup", "configureEngine", "Lkotlin/Result;", "configureEngine-IoAF18A", "getEngineName", "getLc0WeightsFile", "initializeEngine", "isProcessTerminated", "isReady", "newGame", "newGame-IoAF18A", "processLine", "line", "(Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "searchResponses", "sendCommand", "command", "sendCommand-gIAlu-s", "setOption", "name", "value", "setOption-0E7RQCE", "(Ljava/lang/String;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "setPosition", "gameState", "Lcom/chesstrainer/chess/GameState;", "setPosition-gIAlu-s", "(Lcom/chesstrainer/chess/GameState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "startEngine", "onStatusUpdate", "Lkotlin/Function1;", "startEngine-gIAlu-s", "(Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "startOutputMonitoring", "startSearch", "onBestMove", "Lcom/chesstrainer/chess/Move;", "onInfo", "Lcom/chesstrainer/engine/UCIParser$EngineInfo;", "searchParams", "Lcom/chesstrainer/engine/EngineManager$SearchParams;", "startSearch-yxL6bBk", "(Lcom/chesstrainer/chess/GameState;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lcom/chesstrainer/engine/EngineManager$SearchParams;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "stopSearch", "stopSearch-IoAF18A", "supportsOption", "waitForReadyOk", "InitializationCompleteException", "ReadyCompleteException", "SearchParams", "app_debug"})
 public final class EngineManager {
     @org.jetbrains.annotations.NotNull()
     private final android.content.Context context = null;
@@ -26,6 +26,8 @@ public final class EngineManager {
     @org.jetbrains.annotations.Nullable()
     private java.io.File lc0WeightsFile;
     @org.jetbrains.annotations.NotNull()
+    private final java.util.Map<java.lang.String, com.chesstrainer.engine.UCIParser.UCIOption> uciOptions = null;
+    @org.jetbrains.annotations.NotNull()
     private final com.chesstrainer.engine.EngineInstaller installer = null;
     @org.jetbrains.annotations.NotNull()
     private final kotlinx.coroutines.flow.MutableSharedFlow<com.chesstrainer.engine.UCIParser.UCIResponse> _responses = null;
@@ -33,6 +35,8 @@ public final class EngineManager {
     private final kotlinx.coroutines.flow.Flow<com.chesstrainer.engine.UCIParser.UCIResponse> responses = null;
     @org.jetbrains.annotations.Nullable()
     private kotlinx.coroutines.Job outputJob;
+    @org.jetbrains.annotations.Nullable()
+    private kotlinx.coroutines.Job activeSearchJob;
     
     public EngineManager(@org.jetbrains.annotations.NotNull()
     android.content.Context context, @org.jetbrains.annotations.NotNull()
@@ -42,6 +46,11 @@ public final class EngineManager {
     
     @org.jetbrains.annotations.NotNull()
     public final kotlinx.coroutines.flow.Flow<com.chesstrainer.engine.UCIParser.UCIResponse> getResponses() {
+        return null;
+    }
+    
+    @org.jetbrains.annotations.NotNull()
+    public final java.lang.String getEngineName() {
         return null;
     }
     
@@ -72,6 +81,10 @@ public final class EngineManager {
         return null;
     }
     
+    private final java.lang.Object waitForReadyOk(kotlin.coroutines.Continuation<? super kotlin.Unit> $completion) {
+        return null;
+    }
+    
     /**
      * Check if engine is ready for commands
      */
@@ -84,12 +97,18 @@ public final class EngineManager {
         return null;
     }
     
-    /**
-     * Get engine information
-     */
-    @org.jetbrains.annotations.NotNull()
-    public final java.lang.String getEngineName() {
+    private final kotlinx.coroutines.flow.Flow<com.chesstrainer.engine.UCIParser.UCIResponse> searchResponses() {
         return null;
+    }
+    
+    @org.jetbrains.annotations.Nullable()
+    public final java.lang.Object cancelActiveSearch(@org.jetbrains.annotations.NotNull()
+    kotlin.coroutines.Continuation<? super kotlin.Unit> $completion) {
+        return null;
+    }
+    
+    private final boolean supportsOption(java.lang.String name, java.lang.Object value) {
+        return false;
     }
     
     /**
@@ -106,10 +125,10 @@ public final class EngineManager {
         }
     }
     
-    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\u0010\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\b\u0002\u0018\u00002\u00060\u0001j\u0002`\u0002B\u0005\u00a2\u0006\u0002\u0010\u0003\u00a8\u0006\u0004"}, d2 = {"Lcom/chesstrainer/engine/EngineManager$SearchCompleteException;", "Ljava/lang/Exception;", "Lkotlin/Exception;", "()V", "app_debug"})
-    static final class SearchCompleteException extends java.lang.Exception {
+    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\u0010\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\b\u0002\u0018\u00002\u00060\u0001j\u0002`\u0002B\u0005\u00a2\u0006\u0002\u0010\u0003\u00a8\u0006\u0004"}, d2 = {"Lcom/chesstrainer/engine/EngineManager$ReadyCompleteException;", "Ljava/lang/Exception;", "Lkotlin/Exception;", "()V", "app_debug"})
+    static final class ReadyCompleteException extends java.lang.Exception {
         
-        public SearchCompleteException() {
+        public ReadyCompleteException() {
             super();
         }
     }

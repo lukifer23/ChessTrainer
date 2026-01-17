@@ -30,16 +30,16 @@ public final class ChessTrainerDatabase_Impl extends ChessTrainerDatabase {
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(1) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(3) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS `games` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playedAt` INTEGER NOT NULL, `mode` TEXT NOT NULL, `engineType` TEXT NOT NULL, `result` TEXT NOT NULL, `moves` TEXT NOT NULL, `moveCount` INTEGER NOT NULL)");
-        db.execSQL("CREATE TABLE IF NOT EXISTS `game_results` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `gameId` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `score` REAL NOT NULL, FOREIGN KEY(`gameId`) REFERENCES `games`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `games` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `playedAt` INTEGER NOT NULL, `mode` TEXT NOT NULL, `engineType` TEXT NOT NULL, `engineConfig` TEXT NOT NULL, `engineVersion` TEXT NOT NULL, `timeControl` TEXT NOT NULL, `analysisDepth` TEXT NOT NULL, `whiteElo` INTEGER, `blackElo` INTEGER, `result` TEXT NOT NULL, `moves` TEXT NOT NULL, `moveCount` INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `game_results` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `gameId` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `score` REAL NOT NULL, `analysisDepth` TEXT NOT NULL, `timeControl` TEXT NOT NULL, `whiteElo` INTEGER, `blackElo` INTEGER, `engineVersion` TEXT NOT NULL, FOREIGN KEY(`gameId`) REFERENCES `games`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_game_results_gameId` ON `game_results` (`gameId`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `player_ratings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `gameId` INTEGER NOT NULL, `ratingBefore` INTEGER NOT NULL, `ratingAfter` INTEGER NOT NULL, `delta` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, FOREIGN KEY(`gameId`) REFERENCES `games`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_player_ratings_gameId` ON `player_ratings` (`gameId`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '73310ac6dc2b00b6d5cfec1688824feb')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0cfa8d5f9092bb8000b677204493ca4f')");
       }
 
       @Override
@@ -91,11 +91,17 @@ public final class ChessTrainerDatabase_Impl extends ChessTrainerDatabase {
       @NonNull
       public RoomOpenHelper.ValidationResult onValidateSchema(
           @NonNull final SupportSQLiteDatabase db) {
-        final HashMap<String, TableInfo.Column> _columnsGames = new HashMap<String, TableInfo.Column>(7);
+        final HashMap<String, TableInfo.Column> _columnsGames = new HashMap<String, TableInfo.Column>(13);
         _columnsGames.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("playedAt", new TableInfo.Column("playedAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("mode", new TableInfo.Column("mode", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("engineType", new TableInfo.Column("engineType", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("engineConfig", new TableInfo.Column("engineConfig", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("engineVersion", new TableInfo.Column("engineVersion", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("timeControl", new TableInfo.Column("timeControl", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("analysisDepth", new TableInfo.Column("analysisDepth", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("whiteElo", new TableInfo.Column("whiteElo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGames.put("blackElo", new TableInfo.Column("blackElo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("result", new TableInfo.Column("result", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("moves", new TableInfo.Column("moves", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGames.put("moveCount", new TableInfo.Column("moveCount", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -108,11 +114,16 @@ public final class ChessTrainerDatabase_Impl extends ChessTrainerDatabase {
                   + " Expected:\n" + _infoGames + "\n"
                   + " Found:\n" + _existingGames);
         }
-        final HashMap<String, TableInfo.Column> _columnsGameResults = new HashMap<String, TableInfo.Column>(4);
+        final HashMap<String, TableInfo.Column> _columnsGameResults = new HashMap<String, TableInfo.Column>(9);
         _columnsGameResults.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGameResults.put("gameId", new TableInfo.Column("gameId", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGameResults.put("outcome", new TableInfo.Column("outcome", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsGameResults.put("score", new TableInfo.Column("score", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGameResults.put("analysisDepth", new TableInfo.Column("analysisDepth", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGameResults.put("timeControl", new TableInfo.Column("timeControl", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGameResults.put("whiteElo", new TableInfo.Column("whiteElo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGameResults.put("blackElo", new TableInfo.Column("blackElo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsGameResults.put("engineVersion", new TableInfo.Column("engineVersion", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysGameResults = new HashSet<TableInfo.ForeignKey>(1);
         _foreignKeysGameResults.add(new TableInfo.ForeignKey("games", "CASCADE", "NO ACTION", Arrays.asList("gameId"), Arrays.asList("id")));
         final HashSet<TableInfo.Index> _indicesGameResults = new HashSet<TableInfo.Index>(1);
@@ -144,7 +155,7 @@ public final class ChessTrainerDatabase_Impl extends ChessTrainerDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "73310ac6dc2b00b6d5cfec1688824feb", "38e1bde81e8ec5d816a6b39c21f0ecc8");
+    }, "0cfa8d5f9092bb8000b677204493ca4f", "6a3d43ec57db1743d8a1ba973f889b9e");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;

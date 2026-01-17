@@ -7,6 +7,7 @@ import com.chesstrainer.utils.Settings
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import java.io.File
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -111,11 +112,17 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
         val configureResult = engineManager?.configureEngine()
 
         // Leela-specific configuration
-        val weightsPath = engineManager?.getLc0WeightsFile()?.absolutePath
+        val customWeights = settings.customLc0WeightsPath
+        val defaultWeights = engineManager?.getLc0WeightsFile()?.absolutePath
+        val weightsPath = if (!customWeights.isNullOrBlank() && java.io.File(customWeights).exists()) {
+             customWeights
+        } else {
+             defaultWeights
+        }
         val availableThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         val lc0Threads = settings.lc0Threads.coerceIn(1, availableThreads)
         val backendSetting = settings.lc0Backend.trim().ifEmpty { "cpu" }
-        val options = mutableListOf("NNCacheSize" to 200000) // Neural network cache size
+        val options = mutableListOf<Pair<String, Any>>("NNCacheSize" to 200000) // Neural network cache size
 
         if (configureResult?.isFailure == true) {
             options.add("MaxNodes" to (settings.leelaNodes.takeIf { it > 0 } ?: 1000))

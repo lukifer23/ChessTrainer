@@ -6,7 +6,8 @@ import com.chesstrainer.chess.Color as ChessColor
 
 enum class EngineType {
     LEELA_CHESS_ZERO,
-    STOCKFISH
+    STOCKFISH,
+    GGUF
 }
 
 class Settings(context: Context) {
@@ -14,7 +15,11 @@ class Settings(context: Context) {
         context.getSharedPreferences("chess_trainer_settings", Context.MODE_PRIVATE)
 
     var engineType: EngineType
-        get() = EngineType.valueOf(preferences.getString("engine_type", EngineType.LEELA_CHESS_ZERO.name)!!)
+        get() = try {
+            EngineType.valueOf(preferences.getString("engine_type", EngineType.LEELA_CHESS_ZERO.name)!!)
+        } catch (e: Exception) {
+            EngineType.LEELA_CHESS_ZERO
+        }
         set(value) = preferences.edit().putString("engine_type", value.name).apply()
 
     var leelaNodes: Int
@@ -40,4 +45,12 @@ class Settings(context: Context) {
     var boardOrientation: ChessColor
         get() = ChessColor.valueOf(preferences.getString("board_orientation", ChessColor.WHITE.name)!!)
         set(value) = preferences.edit().putString("board_orientation", value.name).apply()
+
+    var customLc0WeightsPath: String?
+        get() = preferences.getString("custom_lc0_weights_path", null)
+        set(value) = preferences.edit().putString("custom_lc0_weights_path", value).apply()
+
+    var ggufModelPath: String?
+        get() = preferences.getString("gguf_model_path", null)
+        set(value) = preferences.edit().putString("gguf_model_path", value).apply()
 }

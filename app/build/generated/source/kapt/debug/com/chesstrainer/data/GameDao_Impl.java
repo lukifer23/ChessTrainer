@@ -13,6 +13,7 @@ import androidx.room.util.DBUtil;
 import androidx.sqlite.db.SupportSQLiteStatement;
 import java.lang.Class;
 import java.lang.Exception;
+import java.lang.Integer;
 import java.lang.Long;
 import java.lang.Object;
 import java.lang.Override;
@@ -42,7 +43,7 @@ public final class GameDao_Impl implements GameDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `games` (`id`,`playedAt`,`mode`,`engineType`,`result`,`moves`,`moveCount`) VALUES (nullif(?, 0),?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `games` (`id`,`playedAt`,`mode`,`engineType`,`engineConfig`,`engineVersion`,`timeControl`,`analysisDepth`,`whiteElo`,`blackElo`,`result`,`moves`,`moveCount`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -60,24 +61,54 @@ public final class GameDao_Impl implements GameDao {
         } else {
           statement.bindString(4, entity.getEngineType());
         }
-        if (entity.getResult() == null) {
+        if (entity.getEngineConfig() == null) {
           statement.bindNull(5);
         } else {
-          statement.bindString(5, entity.getResult());
+          statement.bindString(5, entity.getEngineConfig());
         }
-        if (entity.getMoves() == null) {
+        if (entity.getEngineVersion() == null) {
           statement.bindNull(6);
         } else {
-          statement.bindString(6, entity.getMoves());
+          statement.bindString(6, entity.getEngineVersion());
         }
-        statement.bindLong(7, entity.getMoveCount());
+        if (entity.getTimeControl() == null) {
+          statement.bindNull(7);
+        } else {
+          statement.bindString(7, entity.getTimeControl());
+        }
+        if (entity.getAnalysisDepth() == null) {
+          statement.bindNull(8);
+        } else {
+          statement.bindString(8, entity.getAnalysisDepth());
+        }
+        if (entity.getWhiteElo() == null) {
+          statement.bindNull(9);
+        } else {
+          statement.bindLong(9, entity.getWhiteElo());
+        }
+        if (entity.getBlackElo() == null) {
+          statement.bindNull(10);
+        } else {
+          statement.bindLong(10, entity.getBlackElo());
+        }
+        if (entity.getResult() == null) {
+          statement.bindNull(11);
+        } else {
+          statement.bindString(11, entity.getResult());
+        }
+        if (entity.getMoves() == null) {
+          statement.bindNull(12);
+        } else {
+          statement.bindString(12, entity.getMoves());
+        }
+        statement.bindLong(13, entity.getMoveCount());
       }
     };
     this.__insertionAdapterOfGameResultEntity = new EntityInsertionAdapter<GameResultEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `game_results` (`id`,`gameId`,`outcome`,`score`) VALUES (nullif(?, 0),?,?,?)";
+        return "INSERT OR ABORT INTO `game_results` (`id`,`gameId`,`outcome`,`score`,`analysisDepth`,`timeControl`,`whiteElo`,`blackElo`,`engineVersion`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -91,6 +122,31 @@ public final class GameDao_Impl implements GameDao {
           statement.bindString(3, entity.getOutcome());
         }
         statement.bindDouble(4, entity.getScore());
+        if (entity.getAnalysisDepth() == null) {
+          statement.bindNull(5);
+        } else {
+          statement.bindString(5, entity.getAnalysisDepth());
+        }
+        if (entity.getTimeControl() == null) {
+          statement.bindNull(6);
+        } else {
+          statement.bindString(6, entity.getTimeControl());
+        }
+        if (entity.getWhiteElo() == null) {
+          statement.bindNull(7);
+        } else {
+          statement.bindLong(7, entity.getWhiteElo());
+        }
+        if (entity.getBlackElo() == null) {
+          statement.bindNull(8);
+        } else {
+          statement.bindLong(8, entity.getBlackElo());
+        }
+        if (entity.getEngineVersion() == null) {
+          statement.bindNull(9);
+        } else {
+          statement.bindString(9, entity.getEngineVersion());
+        }
       }
     };
     this.__insertionAdapterOfPlayerRatingEntity = new EntityInsertionAdapter<PlayerRatingEntity>(__db) {
@@ -183,6 +239,12 @@ public final class GameDao_Impl implements GameDao {
           final int _cursorIndexOfPlayedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "playedAt");
           final int _cursorIndexOfMode = CursorUtil.getColumnIndexOrThrow(_cursor, "mode");
           final int _cursorIndexOfEngineType = CursorUtil.getColumnIndexOrThrow(_cursor, "engineType");
+          final int _cursorIndexOfEngineConfig = CursorUtil.getColumnIndexOrThrow(_cursor, "engineConfig");
+          final int _cursorIndexOfEngineVersion = CursorUtil.getColumnIndexOrThrow(_cursor, "engineVersion");
+          final int _cursorIndexOfTimeControl = CursorUtil.getColumnIndexOrThrow(_cursor, "timeControl");
+          final int _cursorIndexOfAnalysisDepth = CursorUtil.getColumnIndexOrThrow(_cursor, "analysisDepth");
+          final int _cursorIndexOfWhiteElo = CursorUtil.getColumnIndexOrThrow(_cursor, "whiteElo");
+          final int _cursorIndexOfBlackElo = CursorUtil.getColumnIndexOrThrow(_cursor, "blackElo");
           final int _cursorIndexOfResult = CursorUtil.getColumnIndexOrThrow(_cursor, "result");
           final int _cursorIndexOfMoves = CursorUtil.getColumnIndexOrThrow(_cursor, "moves");
           final int _cursorIndexOfMoveCount = CursorUtil.getColumnIndexOrThrow(_cursor, "moveCount");
@@ -205,6 +267,42 @@ public final class GameDao_Impl implements GameDao {
             } else {
               _tmpEngineType = _cursor.getString(_cursorIndexOfEngineType);
             }
+            final String _tmpEngineConfig;
+            if (_cursor.isNull(_cursorIndexOfEngineConfig)) {
+              _tmpEngineConfig = null;
+            } else {
+              _tmpEngineConfig = _cursor.getString(_cursorIndexOfEngineConfig);
+            }
+            final String _tmpEngineVersion;
+            if (_cursor.isNull(_cursorIndexOfEngineVersion)) {
+              _tmpEngineVersion = null;
+            } else {
+              _tmpEngineVersion = _cursor.getString(_cursorIndexOfEngineVersion);
+            }
+            final String _tmpTimeControl;
+            if (_cursor.isNull(_cursorIndexOfTimeControl)) {
+              _tmpTimeControl = null;
+            } else {
+              _tmpTimeControl = _cursor.getString(_cursorIndexOfTimeControl);
+            }
+            final String _tmpAnalysisDepth;
+            if (_cursor.isNull(_cursorIndexOfAnalysisDepth)) {
+              _tmpAnalysisDepth = null;
+            } else {
+              _tmpAnalysisDepth = _cursor.getString(_cursorIndexOfAnalysisDepth);
+            }
+            final Integer _tmpWhiteElo;
+            if (_cursor.isNull(_cursorIndexOfWhiteElo)) {
+              _tmpWhiteElo = null;
+            } else {
+              _tmpWhiteElo = _cursor.getInt(_cursorIndexOfWhiteElo);
+            }
+            final Integer _tmpBlackElo;
+            if (_cursor.isNull(_cursorIndexOfBlackElo)) {
+              _tmpBlackElo = null;
+            } else {
+              _tmpBlackElo = _cursor.getInt(_cursorIndexOfBlackElo);
+            }
             final String _tmpResult;
             if (_cursor.isNull(_cursorIndexOfResult)) {
               _tmpResult = null;
@@ -219,7 +317,7 @@ public final class GameDao_Impl implements GameDao {
             }
             final int _tmpMoveCount;
             _tmpMoveCount = _cursor.getInt(_cursorIndexOfMoveCount);
-            _item = new GameEntity(_tmpId,_tmpPlayedAt,_tmpMode,_tmpEngineType,_tmpResult,_tmpMoves,_tmpMoveCount);
+            _item = new GameEntity(_tmpId,_tmpPlayedAt,_tmpMode,_tmpEngineType,_tmpEngineConfig,_tmpEngineVersion,_tmpTimeControl,_tmpAnalysisDepth,_tmpWhiteElo,_tmpBlackElo,_tmpResult,_tmpMoves,_tmpMoveCount);
             _result.add(_item);
           }
           return _result;
@@ -249,6 +347,11 @@ public final class GameDao_Impl implements GameDao {
           final int _cursorIndexOfGameId = CursorUtil.getColumnIndexOrThrow(_cursor, "gameId");
           final int _cursorIndexOfOutcome = CursorUtil.getColumnIndexOrThrow(_cursor, "outcome");
           final int _cursorIndexOfScore = CursorUtil.getColumnIndexOrThrow(_cursor, "score");
+          final int _cursorIndexOfAnalysisDepth = CursorUtil.getColumnIndexOrThrow(_cursor, "analysisDepth");
+          final int _cursorIndexOfTimeControl = CursorUtil.getColumnIndexOrThrow(_cursor, "timeControl");
+          final int _cursorIndexOfWhiteElo = CursorUtil.getColumnIndexOrThrow(_cursor, "whiteElo");
+          final int _cursorIndexOfBlackElo = CursorUtil.getColumnIndexOrThrow(_cursor, "blackElo");
+          final int _cursorIndexOfEngineVersion = CursorUtil.getColumnIndexOrThrow(_cursor, "engineVersion");
           final List<GameResultEntity> _result = new ArrayList<GameResultEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final GameResultEntity _item;
@@ -264,7 +367,37 @@ public final class GameDao_Impl implements GameDao {
             }
             final double _tmpScore;
             _tmpScore = _cursor.getDouble(_cursorIndexOfScore);
-            _item = new GameResultEntity(_tmpId,_tmpGameId,_tmpOutcome,_tmpScore);
+            final String _tmpAnalysisDepth;
+            if (_cursor.isNull(_cursorIndexOfAnalysisDepth)) {
+              _tmpAnalysisDepth = null;
+            } else {
+              _tmpAnalysisDepth = _cursor.getString(_cursorIndexOfAnalysisDepth);
+            }
+            final String _tmpTimeControl;
+            if (_cursor.isNull(_cursorIndexOfTimeControl)) {
+              _tmpTimeControl = null;
+            } else {
+              _tmpTimeControl = _cursor.getString(_cursorIndexOfTimeControl);
+            }
+            final Integer _tmpWhiteElo;
+            if (_cursor.isNull(_cursorIndexOfWhiteElo)) {
+              _tmpWhiteElo = null;
+            } else {
+              _tmpWhiteElo = _cursor.getInt(_cursorIndexOfWhiteElo);
+            }
+            final Integer _tmpBlackElo;
+            if (_cursor.isNull(_cursorIndexOfBlackElo)) {
+              _tmpBlackElo = null;
+            } else {
+              _tmpBlackElo = _cursor.getInt(_cursorIndexOfBlackElo);
+            }
+            final String _tmpEngineVersion;
+            if (_cursor.isNull(_cursorIndexOfEngineVersion)) {
+              _tmpEngineVersion = null;
+            } else {
+              _tmpEngineVersion = _cursor.getString(_cursorIndexOfEngineVersion);
+            }
+            _item = new GameResultEntity(_tmpId,_tmpGameId,_tmpOutcome,_tmpScore,_tmpAnalysisDepth,_tmpTimeControl,_tmpWhiteElo,_tmpBlackElo,_tmpEngineVersion);
             _result.add(_item);
           }
           return _result;
@@ -278,6 +411,188 @@ public final class GameDao_Impl implements GameDao {
         _statement.release();
       }
     });
+  }
+
+  @Override
+  public Object getGamesList(final Continuation<? super List<GameEntity>> $completion) {
+    final String _sql = "SELECT * FROM games ORDER BY playedAt DESC";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<GameEntity>>() {
+      @Override
+      @NonNull
+      public List<GameEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfPlayedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "playedAt");
+          final int _cursorIndexOfMode = CursorUtil.getColumnIndexOrThrow(_cursor, "mode");
+          final int _cursorIndexOfEngineType = CursorUtil.getColumnIndexOrThrow(_cursor, "engineType");
+          final int _cursorIndexOfEngineConfig = CursorUtil.getColumnIndexOrThrow(_cursor, "engineConfig");
+          final int _cursorIndexOfEngineVersion = CursorUtil.getColumnIndexOrThrow(_cursor, "engineVersion");
+          final int _cursorIndexOfTimeControl = CursorUtil.getColumnIndexOrThrow(_cursor, "timeControl");
+          final int _cursorIndexOfAnalysisDepth = CursorUtil.getColumnIndexOrThrow(_cursor, "analysisDepth");
+          final int _cursorIndexOfWhiteElo = CursorUtil.getColumnIndexOrThrow(_cursor, "whiteElo");
+          final int _cursorIndexOfBlackElo = CursorUtil.getColumnIndexOrThrow(_cursor, "blackElo");
+          final int _cursorIndexOfResult = CursorUtil.getColumnIndexOrThrow(_cursor, "result");
+          final int _cursorIndexOfMoves = CursorUtil.getColumnIndexOrThrow(_cursor, "moves");
+          final int _cursorIndexOfMoveCount = CursorUtil.getColumnIndexOrThrow(_cursor, "moveCount");
+          final List<GameEntity> _result = new ArrayList<GameEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final GameEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final long _tmpPlayedAt;
+            _tmpPlayedAt = _cursor.getLong(_cursorIndexOfPlayedAt);
+            final String _tmpMode;
+            if (_cursor.isNull(_cursorIndexOfMode)) {
+              _tmpMode = null;
+            } else {
+              _tmpMode = _cursor.getString(_cursorIndexOfMode);
+            }
+            final String _tmpEngineType;
+            if (_cursor.isNull(_cursorIndexOfEngineType)) {
+              _tmpEngineType = null;
+            } else {
+              _tmpEngineType = _cursor.getString(_cursorIndexOfEngineType);
+            }
+            final String _tmpEngineConfig;
+            if (_cursor.isNull(_cursorIndexOfEngineConfig)) {
+              _tmpEngineConfig = null;
+            } else {
+              _tmpEngineConfig = _cursor.getString(_cursorIndexOfEngineConfig);
+            }
+            final String _tmpEngineVersion;
+            if (_cursor.isNull(_cursorIndexOfEngineVersion)) {
+              _tmpEngineVersion = null;
+            } else {
+              _tmpEngineVersion = _cursor.getString(_cursorIndexOfEngineVersion);
+            }
+            final String _tmpTimeControl;
+            if (_cursor.isNull(_cursorIndexOfTimeControl)) {
+              _tmpTimeControl = null;
+            } else {
+              _tmpTimeControl = _cursor.getString(_cursorIndexOfTimeControl);
+            }
+            final String _tmpAnalysisDepth;
+            if (_cursor.isNull(_cursorIndexOfAnalysisDepth)) {
+              _tmpAnalysisDepth = null;
+            } else {
+              _tmpAnalysisDepth = _cursor.getString(_cursorIndexOfAnalysisDepth);
+            }
+            final Integer _tmpWhiteElo;
+            if (_cursor.isNull(_cursorIndexOfWhiteElo)) {
+              _tmpWhiteElo = null;
+            } else {
+              _tmpWhiteElo = _cursor.getInt(_cursorIndexOfWhiteElo);
+            }
+            final Integer _tmpBlackElo;
+            if (_cursor.isNull(_cursorIndexOfBlackElo)) {
+              _tmpBlackElo = null;
+            } else {
+              _tmpBlackElo = _cursor.getInt(_cursorIndexOfBlackElo);
+            }
+            final String _tmpResult;
+            if (_cursor.isNull(_cursorIndexOfResult)) {
+              _tmpResult = null;
+            } else {
+              _tmpResult = _cursor.getString(_cursorIndexOfResult);
+            }
+            final String _tmpMoves;
+            if (_cursor.isNull(_cursorIndexOfMoves)) {
+              _tmpMoves = null;
+            } else {
+              _tmpMoves = _cursor.getString(_cursorIndexOfMoves);
+            }
+            final int _tmpMoveCount;
+            _tmpMoveCount = _cursor.getInt(_cursorIndexOfMoveCount);
+            _item = new GameEntity(_tmpId,_tmpPlayedAt,_tmpMode,_tmpEngineType,_tmpEngineConfig,_tmpEngineVersion,_tmpTimeControl,_tmpAnalysisDepth,_tmpWhiteElo,_tmpBlackElo,_tmpResult,_tmpMoves,_tmpMoveCount);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object getResultsList(final Continuation<? super List<GameResultEntity>> $completion) {
+    final String _sql = "SELECT * FROM game_results ORDER BY id DESC";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<GameResultEntity>>() {
+      @Override
+      @NonNull
+      public List<GameResultEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfGameId = CursorUtil.getColumnIndexOrThrow(_cursor, "gameId");
+          final int _cursorIndexOfOutcome = CursorUtil.getColumnIndexOrThrow(_cursor, "outcome");
+          final int _cursorIndexOfScore = CursorUtil.getColumnIndexOrThrow(_cursor, "score");
+          final int _cursorIndexOfAnalysisDepth = CursorUtil.getColumnIndexOrThrow(_cursor, "analysisDepth");
+          final int _cursorIndexOfTimeControl = CursorUtil.getColumnIndexOrThrow(_cursor, "timeControl");
+          final int _cursorIndexOfWhiteElo = CursorUtil.getColumnIndexOrThrow(_cursor, "whiteElo");
+          final int _cursorIndexOfBlackElo = CursorUtil.getColumnIndexOrThrow(_cursor, "blackElo");
+          final int _cursorIndexOfEngineVersion = CursorUtil.getColumnIndexOrThrow(_cursor, "engineVersion");
+          final List<GameResultEntity> _result = new ArrayList<GameResultEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final GameResultEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final long _tmpGameId;
+            _tmpGameId = _cursor.getLong(_cursorIndexOfGameId);
+            final String _tmpOutcome;
+            if (_cursor.isNull(_cursorIndexOfOutcome)) {
+              _tmpOutcome = null;
+            } else {
+              _tmpOutcome = _cursor.getString(_cursorIndexOfOutcome);
+            }
+            final double _tmpScore;
+            _tmpScore = _cursor.getDouble(_cursorIndexOfScore);
+            final String _tmpAnalysisDepth;
+            if (_cursor.isNull(_cursorIndexOfAnalysisDepth)) {
+              _tmpAnalysisDepth = null;
+            } else {
+              _tmpAnalysisDepth = _cursor.getString(_cursorIndexOfAnalysisDepth);
+            }
+            final String _tmpTimeControl;
+            if (_cursor.isNull(_cursorIndexOfTimeControl)) {
+              _tmpTimeControl = null;
+            } else {
+              _tmpTimeControl = _cursor.getString(_cursorIndexOfTimeControl);
+            }
+            final Integer _tmpWhiteElo;
+            if (_cursor.isNull(_cursorIndexOfWhiteElo)) {
+              _tmpWhiteElo = null;
+            } else {
+              _tmpWhiteElo = _cursor.getInt(_cursorIndexOfWhiteElo);
+            }
+            final Integer _tmpBlackElo;
+            if (_cursor.isNull(_cursorIndexOfBlackElo)) {
+              _tmpBlackElo = null;
+            } else {
+              _tmpBlackElo = _cursor.getInt(_cursorIndexOfBlackElo);
+            }
+            final String _tmpEngineVersion;
+            if (_cursor.isNull(_cursorIndexOfEngineVersion)) {
+              _tmpEngineVersion = null;
+            } else {
+              _tmpEngineVersion = _cursor.getString(_cursorIndexOfEngineVersion);
+            }
+            _item = new GameResultEntity(_tmpId,_tmpGameId,_tmpOutcome,_tmpScore,_tmpAnalysisDepth,_tmpTimeControl,_tmpWhiteElo,_tmpBlackElo,_tmpEngineVersion);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
   }
 
   @Override

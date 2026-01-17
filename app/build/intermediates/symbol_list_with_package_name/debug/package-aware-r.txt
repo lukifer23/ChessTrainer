@@ -653,6 +653,7 @@ drawable ic_chess_king_black
 drawable ic_chess_king_white
 drawable ic_chess_knight_black
 drawable ic_chess_knight_white
+drawable ic_chess_missing
 drawable ic_chess_pawn_black
 drawable ic_chess_pawn_white
 drawable ic_chess_queen_black

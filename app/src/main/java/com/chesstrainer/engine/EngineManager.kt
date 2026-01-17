@@ -400,6 +400,12 @@ class EngineManager(
                     results.add(setOption("Threads", Runtime.getRuntime().availableProcessors()))
                 }
             }
+            com.chesstrainer.utils.EngineType.GGUF -> {
+                // GGUF specific configuration
+                settings.stockfishDepth.takeIf { it > 0 }?.let { _ ->
+                    // Apply GGUF settings if applicable
+                }
+            }
         }
 
         // Return failure if any option failed to set
@@ -411,10 +417,6 @@ class EngineManager(
         }
     }
 
-    /**
-     * Get engine information
-     */
-    fun getEngineName(): String = engineName
 
     private fun supportsOption(name: String, value: Any? = null): Boolean {
         val option = uciOptions[name.lowercase()] ?: return false

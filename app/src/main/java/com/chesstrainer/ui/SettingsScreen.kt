@@ -17,6 +17,7 @@ import com.chesstrainer.engine.EngineInstaller
 import com.chesstrainer.chess.Color as ChessColor
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
+import java.io.File
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,6 +32,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     var leelaNodes by remember { mutableStateOf(settings.leelaNodes.toString()) }
     var leelaThreads by remember { mutableStateOf(settings.lc0Threads.toString()) }
     var leelaBackend by remember { mutableStateOf(settings.lc0Backend) }
+
+    var customWeightsPath by remember { mutableStateOf(settings.customLc0WeightsPath ?: "") }
     var stockfishDepth by remember { mutableStateOf(settings.stockfishDepth.toString()) }
     var leelaStatus by remember { mutableStateOf(installer.getStatus(EngineType.LEELA_CHESS_ZERO)) }
     var stockfishStatus by remember { mutableStateOf(installer.getStatus(EngineType.STOCKFISH)) }
@@ -39,6 +42,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     var isInstalling by remember { mutableStateOf(false) }
     var backendValidationMessage by remember { mutableStateOf<String?>(null) }
     var backendExpanded by remember { mutableStateOf(false) }
+    var ggufModelPath by remember { mutableStateOf(settings.ggufModelPath ?: "") }
+    var ggufStatus by remember { mutableStateOf(installer.getStatus(EngineType.GGUF)) }
     val supportedBackends = settings.lc0BackendOptions
     val defaultBackendChoices = listOf("cpu", "gpu", "opencl", "metal")
     val backendChoices = remember(supportedBackends) {
@@ -52,6 +57,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     LaunchedEffect(Unit) {
         leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
         stockfishStatus = installer.getStatus(EngineType.STOCKFISH)
+        ggufStatus = installer.getStatus(EngineType.GGUF)
     }
 
     // Save settings when changed
@@ -61,6 +67,9 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
         leelaNodes,
         leelaThreads,
         leelaBackend,
+        ggufModelPath,
+
+        customWeightsPath,
         stockfishDepth,
         supportedBackends
     ) {
@@ -81,7 +90,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
         settings.leelaNodes = leelaNodes.toIntOrNull() ?: 1000
         settings.lc0Threads = leelaThreads.toIntOrNull() ?: 2
         settings.lc0Backend = validatedBackend
+        settings.ggufModelPath = ggufModelPath.ifBlank { null }
         settings.stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
+    }
+    
+    // Save custom weights separately to handle potentially empty strings
+    LaunchedEffect(customWeightsPath) {
+        val path = customWeightsPath.trim()
+        settings.customLc0WeightsPath = if (path.isEmpty()) null else path
     }
 
     Column(
@@ -137,6 +153,13 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             description = "Classical chess engine with brute-force search. Excellent tactical analysis.",
                             selected = selectedEngine == EngineType.STOCKFISH,
                             onSelect = { selectedEngine = EngineType.STOCKFISH }
+                        )
+
+                        EngineOption(
+                            title = "GGUF / Llama (Experimental)",
+                            description = "Use local LLM models (GGUF format) for chess inference.",
+                            selected = selectedEngine == EngineType.GGUF,
+                            onSelect = { selectedEngine = EngineType.GGUF }
                         )
                     }
                 }
@@ -248,6 +271,22 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                                 )
                             }
+
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = customWeightsPath,
+                                onValueChange = { customWeightsPath = it },
+                                label = { Text("Custom Weights Path (Optional)") },
+                                placeholder = { Text("/path/to/weights.pb.gz") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Leave empty to use downloaded weights.",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
                         }
 
                         EngineType.STOCKFISH -> {
@@ -269,6 +308,28 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             )
                             Text(
                                 text = "Higher values = stronger play but slower moves (10-25)",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        EngineType.GGUF -> {
+                            Text(
+                                text = "GGUF Engine uses large language models quantized for local execution.",
+                                style = MaterialTheme.typography.body2,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            OutlinedTextField(
+                                value = ggufModelPath,
+                                onValueChange = { ggufModelPath = it },
+                                label = { Text("Model Path") },
+                                placeholder = { Text("/path/to/model.gguf") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Absolute path to the GGUF model file.",
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -369,6 +430,17 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             Text("Install Stockfish")
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    EngineStatusRow(
+                        title = "GGUF Model",
+                        status = ggufStatus.statusMessage,
+                        details = ggufStatus.enginePath
+                    )
+                    Text(
+                        text = "For GGUF, please manually provide the model path above.",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
                     installMessage?.let { message ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -449,7 +521,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                         boardOrientation = selectedBoardOrientation,
                         leelaNodes = leelaNodes.toIntOrNull() ?: 1000,
                         leelaBackend = leelaBackend,
-                        stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
+                        stockfishDepth = stockfishDepth.toIntOrNull() ?: 15,
+                        ggufModelPath = ggufModelPath
                     )
                 }
             }
@@ -572,18 +645,26 @@ private fun SettingsSummary(
     boardOrientation: ChessColor,
     leelaNodes: Int,
     leelaBackend: String,
-    stockfishDepth: Int
+    stockfishDepth: Int,
+    ggufModelPath: String
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Engine: ${if (engine == EngineType.LEELA_CHESS_ZERO) "LeelaChess0" else "Stockfish"}",
+            text = "Engine: ${
+                when (engine) {
+                    EngineType.LEELA_CHESS_ZERO -> "LeelaChess0"
+                    EngineType.STOCKFISH -> "Stockfish"
+                    EngineType.GGUF -> "GGUF"
+                }
+            }",
             style = MaterialTheme.typography.body2
         )
         Text(
-            text = if (engine == EngineType.LEELA_CHESS_ZERO)
-                "Nodes: $leelaNodes • Backend: ${leelaBackend.ifBlank { "cpu" }}"
-            else
-                "Depth: $stockfishDepth",
+            text = when (engine) {
+                EngineType.LEELA_CHESS_ZERO -> "Nodes: $leelaNodes • Backend: ${leelaBackend.ifBlank { "cpu" }}"
+                EngineType.STOCKFISH -> "Depth: $stockfishDepth"
+                EngineType.GGUF -> "Model: ${File(ggufModelPath).name}"
+            },
             style = MaterialTheme.typography.body2
         )
         Text(
