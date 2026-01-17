@@ -105,18 +105,24 @@ class LeelaEngine(private val context: Context, private val settings: Settings) 
      * Configure LeelaChess0-specific options
      */
     private suspend fun configureLeela() {
-        engineManager?.configureEngine()
+        val configureResult = engineManager?.configureEngine()
 
         // Leela-specific configuration
         val weightsPath = engineManager?.getLc0WeightsFile()?.absolutePath
-        val options = mutableListOf(
-            "MaxNodes" to (settings.leelaNodes.takeIf { it > 0 } ?: 1000),
-            "Threads" to Runtime.getRuntime().availableProcessors(),
-            "NNCacheSize" to 200000, // Neural network cache size
-            "Backend" to "eigen", // CPU backend for Android
-        )
-        if (!weightsPath.isNullOrBlank()) {
-            options.add("WeightsFile" to weightsPath)
+        val availableThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val lc0Threads = settings.lc0Threads.coerceIn(1, availableThreads)
+        val backendSetting = settings.lc0Backend.trim().ifEmpty { "cpu" }
+        val options = mutableListOf("NNCacheSize" to 200000) // Neural network cache size
+
+        if (configureResult?.isFailure == true) {
+            options.add("MaxNodes" to (settings.leelaNodes.takeIf { it > 0 } ?: 1000))
+            options.add("Threads" to lc0Threads)
+            options.add("Backend" to backendSetting)
+            if (!weightsPath.isNullOrBlank()) {
+                options.add("WeightsFile" to weightsPath)
+            }
+        } else if (settings.lc0Backend.isBlank()) {
+            options.add("Backend" to backendSetting)
         }
 
         for ((option, value) in options) {
