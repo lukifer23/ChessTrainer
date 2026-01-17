@@ -2,12 +2,14 @@ package com.chesstrainer.data
 
 import android.content.Context
 import androidx.room.Database
+import androidx.room.migration.Migration
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [GameEntity::class, GameResultEntity::class, PlayerRatingEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class ChessTrainerDatabase : RoomDatabase() {
@@ -24,9 +26,33 @@ abstract class ChessTrainerDatabase : RoomDatabase() {
                         context.applicationContext,
                         ChessTrainerDatabase::class.java,
                         "chess_trainer.db"
-                    ).build()
+                    ).addMigrations(MIGRATION_1_2)
+                        .build()
                         .also { instance = it }
             }
         }
+    }
+}
+
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            ALTER TABLE games
+            ADD COLUMN opponentRating INTEGER NOT NULL DEFAULT 1200
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            ALTER TABLE games
+            ADD COLUMN engineDepth INTEGER
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            ALTER TABLE games
+            ADD COLUMN leelaNodes INTEGER
+            """.trimIndent()
+        )
     }
 }

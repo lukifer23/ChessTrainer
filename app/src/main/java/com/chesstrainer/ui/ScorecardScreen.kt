@@ -32,6 +32,7 @@ fun ScorecardScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val repository = remember { GameRepository(context.applicationContext) }
     val results by repository.results.collectAsState(initial = emptyList())
+    val games by repository.games.collectAsState(initial = emptyList())
     val ratings by repository.ratings.collectAsState(initial = emptyList())
 
     val wins = results.count { it.outcome == PlayerOutcome.WIN.name }
@@ -39,6 +40,7 @@ fun ScorecardScreen(onNavigateBack: () -> Unit) {
     val draws = results.count { it.outcome == PlayerOutcome.DRAW.name }
     val latestRating = ratings.lastOrNull()?.ratingAfter ?: 1200
     val formatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
+    val gamesById = remember(games) { games.associateBy { it.id } }
 
     Column(
         modifier = Modifier
@@ -96,11 +98,27 @@ fun ScorecardScreen(onNavigateBack: () -> Unit) {
                     Text("No games recorded yet.")
                 } else {
                     ratings.forEach { rating ->
+                        val game = gamesById[rating.gameId]
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(formatter.format(Date(rating.recordedAt)))
+                            Column {
+                                Text(formatter.format(Date(rating.recordedAt)))
+                                if (game != null) {
+                                    val engineLabel = if (game.engineType == "NONE") {
+                                        "Free play"
+                                    } else {
+                                        game.engineType.lowercase().replace("_", " ").replaceFirstChar { it.titlecase() }
+                                    }
+                                    val engineDetail = when {
+                                        game.engineDepth != null -> "$engineLabel • Depth ${game.engineDepth}"
+                                        game.leelaNodes != null -> "$engineLabel • ${game.leelaNodes} nodes"
+                                        else -> engineLabel
+                                    }
+                                    Text("Opponent ${game.opponentRating} • $engineDetail")
+                                }
+                            }
                             Text("${rating.ratingAfter} (${rating.delta})")
                         }
                     }

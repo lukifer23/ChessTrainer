@@ -10,6 +10,9 @@ data class GameEntity(
     val playedAt: Long,
     val mode: String,
     val engineType: String,
+    val opponentRating: Int,
+    val engineDepth: Int? = null,
+    val leelaNodes: Int? = null,
     val result: String,
     val moves: String,
     val moveCount: Int

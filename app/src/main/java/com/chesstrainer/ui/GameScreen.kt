@@ -27,6 +27,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.log10
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 enum class GameMode {
@@ -40,6 +42,25 @@ fun shouldEngineMove(player: com.chesstrainer.chess.Color, mode: GameMode): Bool
         GameMode.HUMAN_VS_ENGINE -> player != com.chesstrainer.chess.Color.WHITE // Human is white, engine is black
         GameMode.ENGINE_VS_ENGINE -> true // Both players are engines
         GameMode.FREE_PLAY -> false // Human vs human
+    }
+}
+
+fun estimateOpponentRating(
+    engineType: EngineType,
+    stockfishDepth: Int?,
+    leelaNodes: Int?
+): Int {
+    return when (engineType) {
+        EngineType.STOCKFISH -> {
+            val depth = (stockfishDepth ?: 1).coerceAtLeast(1)
+            val rating = 900 + depth * 40
+            rating.coerceIn(900, 2400)
+        }
+        EngineType.LEELA_CHESS_ZERO -> {
+            val nodes = (leelaNodes ?: 1).coerceAtLeast(1)
+            val rating = 800 + (log10(nodes.toDouble()) * 600).roundToInt()
+            rating.coerceIn(900, 2400)
+        }
     }
 }
 
@@ -157,13 +178,24 @@ fun GameScreen(
                     PlayerOutcome.DRAW -> 0.5
                     PlayerOutcome.LOSS -> 0.0
                 }
+                val engineDepth = if (gameMode != GameMode.FREE_PLAY && currentEngine == EngineType.STOCKFISH) {
+                    settings.stockfishDepth
+                } else {
+                    null
+                }
+                val leelaNodes = if (gameMode != GameMode.FREE_PLAY && currentEngine == EngineType.LEELA_CHESS_ZERO) {
+                    settings.leelaNodes
+                } else {
+                    null
+                }
                 val opponentRating = when (gameMode) {
                     GameMode.FREE_PLAY -> 1200
                     GameMode.HUMAN_VS_ENGINE,
-                    GameMode.ENGINE_VS_ENGINE -> when (currentEngine) {
-                        EngineType.STOCKFISH -> 1600
-                        EngineType.LEELA_CHESS_ZERO -> 1700
-                    }
+                    GameMode.ENGINE_VS_ENGINE -> estimateOpponentRating(
+                        engineType = currentEngine,
+                        stockfishDepth = engineDepth,
+                        leelaNodes = leelaNodes
+                    )
                 }
                 val timestamp = System.currentTimeMillis()
                 val latestRating = repository.getLatestRating()?.ratingAfter ?: 1200
@@ -173,15 +205,18 @@ fun GameScreen(
                     score = score
                 )
                 val delta = updatedRating - latestRating
-                val engineLabel = if (gameMode == GameMode.FREE_PLAY) \"NONE\" else currentEngine.name
+                val engineLabel = if (gameMode == GameMode.FREE_PLAY) "NONE" else currentEngine.name
 
                 repository.recordCompletedGame(
                     game = GameEntity(
                         playedAt = timestamp,
                         mode = gameMode.name,
                         engineType = engineLabel,
+                        opponentRating = opponentRating,
+                        engineDepth = engineDepth,
+                        leelaNodes = leelaNodes,
                         result = gameState.gameResult.name,
-                        moves = moveList.joinToString(\" \"),
+                        moves = moveList.joinToString(" "),
                         moveCount = gameState.moveHistory.size
                     ),
                     result = GameResultEntity(
