@@ -1,5 +1,6 @@
 package com.chesstrainer.ui
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,8 +14,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -74,60 +77,77 @@ fun ChessBoard(
     val pieceImages = rememberPieceImages()
 
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
+    val density = LocalDensity.current
 
-    // Fixed board size for consistent appearance
-    val boardSize = 320f // Fixed 320dp board size
-    val squareSize = boardSize / 8f
-    val pieceSize = squareSize * 0.85f // Pieces should fill most of the square
-
-    Canvas(
+    BoxWithConstraints(
         modifier = modifier
-            .requiredSize(boardSize.dp, boardSize.dp) // Use requiredSize for exact sizing
-            .pointerInput(gameState, boardOrientation) { // Include all dependencies for recomposition
-                detectTapGestures(
-                    onTap = { offset ->
-                        val square = positionToSquare(offset, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        square?.let { onSquareClick(it) }
-                    }
-                )
-            }
-            .pointerInput(gameState, boardOrientation) { // Include all dependencies for recomposition
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val square = positionToSquare(offset, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        if (square != null) {
-                            val piece = gameState.board.getPiece(square)
-                            if (piece != null && piece.color == gameState.currentPlayer) {
-                                onDragStart(square)
-                            }
+            .fillMaxWidth()
+            .aspectRatio(1f)
+    ) {
+        val boardSize = min(maxWidth, maxHeight)
+        val boardSizePx = with(density) { boardSize.toPx() }
+
+        Canvas(
+            modifier = Modifier
+                .size(boardSize)
+                .pointerInput(gameState, boardOrientation, boardSizePx) { // Include all dependencies for recomposition
+                    detectTapGestures(
+                        onTap = { offset ->
+                            val square = positionToSquare(
+                                offset,
+                                IntSize(boardSizePx.toInt(), boardSizePx.toInt()),
+                                boardOrientation
+                            )
+                            square?.let { onSquareClick(it) }
                         }
-                    },
-                    onDrag = { change, dragAmount ->
-                        dragPosition = change.position
-                    },
-                    onDragEnd = {
-                        val square = positionToSquare(dragPosition, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        onDragEnd(square)
-                        dragPosition = Offset.Zero
-                    },
-                    onDragCancel = {
-                        onDragEnd(null)
-                        dragPosition = Offset.Zero
-                    }
-                )
-            }
+                    )
+                }
+                .pointerInput(gameState, boardOrientation, boardSizePx) { // Include all dependencies for recomposition
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val square = positionToSquare(
+                                offset,
+                                IntSize(boardSizePx.toInt(), boardSizePx.toInt()),
+                                boardOrientation
+                            )
+                            if (square != null) {
+                                val piece = gameState.board.getPiece(square)
+                                if (piece != null && piece.color == gameState.currentPlayer) {
+                                    onDragStart(square)
+                                }
+                            }
+                        },
+                        onDrag = { change, dragAmount ->
+                            dragPosition = change.position
+                        },
+                        onDragEnd = {
+                            val square = positionToSquare(
+                                dragPosition,
+                                IntSize(boardSizePx.toInt(), boardSizePx.toInt()),
+                                boardOrientation
+                            )
+                            onDragEnd(square)
+                            dragPosition = Offset.Zero
+                        },
+                        onDragCancel = {
+                            onDragEnd(null)
+                            dragPosition = Offset.Zero
+                        }
+                    )
+                }
         ) {
-        drawBoard(
-            gameState,
-            theme,
-            selectedSquare,
-            availableMoves,
-            lastMove,
-            boardOrientation,
-            pieceImages,
-            draggedPiece,
-            dragPosition
-        )
+            drawBoard(
+                gameState,
+                theme,
+                selectedSquare,
+                availableMoves,
+                lastMove,
+                boardOrientation,
+                pieceImages,
+                draggedPiece,
+                dragPosition
+            )
+        }
     }
 }
 
@@ -328,30 +348,31 @@ private fun DrawScope.drawCoordinates(
     boardOrientation: com.chesstrainer.chess.Color,
     theme: BoardTheme
 ) {
-    val coordinateSize = squareSize * 0.2f
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = theme.coordinateColor.toArgb()
+        textSize = squareSize * 0.22f
+    }
+    val textPadding = squareSize * 0.12f
+    val fontMetrics = paint.fontMetrics
 
-    // Draw file indicators (a-h) at the bottom - simple dots
-    val fileY = boardSize + coordinateSize * 0.5f
-    for (file in 0..7) {
-        val displayFile = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) file else 7 - file
-        val fileX = file * squareSize + squareSize / 2f
-        drawCircle(
-            color = theme.coordinateColor,
-            center = Offset(fileX, fileY),
-            radius = coordinateSize * 0.3f
-        )
+    // Draw file indicators (a-h) along the bottom edge
+    paint.textAlign = Paint.Align.CENTER
+    val fileY = boardSize - textPadding
+    for (displayFile in 0..7) {
+        val actualFile = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) displayFile else 7 - displayFile
+        val fileLabel = ('a' + actualFile).toString()
+        val fileX = displayFile * squareSize + squareSize / 2f
+        drawContext.canvas.nativeCanvas.drawText(fileLabel, fileX, fileY, paint)
     }
 
-    // Draw rank indicators (1-8) on the left side - small rectangles
-    val rankX = -coordinateSize * 0.4f
-    for (rank in 0..7) {
-        val displayRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 - rank else rank
-        val rankY = displayRank * squareSize + squareSize / 2f
-        drawRect(
-            color = theme.coordinateColor,
-            topLeft = Offset(rankX - coordinateSize * 0.2f, rankY - coordinateSize * 0.2f),
-            size = Size(coordinateSize * 0.4f, coordinateSize * 0.4f)
-        )
+    // Draw rank indicators (1-8) along the left edge
+    paint.textAlign = Paint.Align.LEFT
+    for (displayRank in 0..7) {
+        val actualRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 - displayRank else displayRank
+        val rankLabel = (actualRank + 1).toString()
+        val rankY = displayRank * squareSize + squareSize / 2f -
+            (fontMetrics.ascent + fontMetrics.descent) / 2f
+        drawContext.canvas.nativeCanvas.drawText(rankLabel, textPadding, rankY, paint)
     }
 }
 
