@@ -15,9 +15,41 @@ data class GameState(
     val halfMoveClock: Int = 0,
     val fullMoveNumber: Int = 1,
     val moveHistory: List<Move> = emptyList(),
+    val positionHashes: List<Long> = listOf(
+        computePositionHash(
+            board = board,
+            currentPlayer = currentPlayer,
+            whiteCanCastleKingside = whiteCanCastleKingside,
+            whiteCanCastleQueenside = whiteCanCastleQueenside,
+            blackCanCastleKingside = blackCanCastleKingside,
+            blackCanCastleQueenside = blackCanCastleQueenside,
+            enPassantTarget = enPassantTarget
+        )
+    ),
     val gameResult: GameResult = GameResult.ONGOING
 ) {
     companion object {
+        private const val ZOBRIST_SEED = 0L
+        private const val PIECE_TYPE_COUNT = 6
+        private const val COLOR_COUNT = 2
+
+        private val pieceSquareKeys: Array<LongArray> = Array(PIECE_TYPE_COUNT * COLOR_COUNT) { LongArray(64) }
+        private val sideToMoveKey: Long
+        private val castlingKeys: LongArray
+        private val enPassantFileKeys: LongArray
+
+        init {
+            val random = java.util.Random(ZOBRIST_SEED)
+            for (pieceIndex in pieceSquareKeys.indices) {
+                for (squareIndex in 0 until 64) {
+                    pieceSquareKeys[pieceIndex][squareIndex] = random.nextLong()
+                }
+            }
+            sideToMoveKey = random.nextLong()
+            castlingKeys = LongArray(4) { random.nextLong() }
+            enPassantFileKeys = LongArray(8) { random.nextLong() }
+        }
+
         fun fromFen(fen: String): GameState {
             val parts = fen.split(" ")
             if (parts.size < 6) throw IllegalArgumentException("Invalid FEN string")
@@ -50,6 +82,46 @@ data class GameState(
                 halfMoveClock = halfMoveClock,
                 fullMoveNumber = fullMoveNumber
             )
+        }
+
+        private fun computePositionHash(
+            board: Board,
+            currentPlayer: Color,
+            whiteCanCastleKingside: Boolean,
+            whiteCanCastleQueenside: Boolean,
+            blackCanCastleKingside: Boolean,
+            blackCanCastleQueenside: Boolean,
+            enPassantTarget: Square?
+        ): Long {
+            var hash = 0L
+            for ((square, piece) in board.getAllPieces()) {
+                val pieceIndex = pieceIndex(piece)
+                hash = hash xor pieceSquareKeys[pieceIndex][square.index]
+            }
+            if (currentPlayer == Color.BLACK) {
+                hash = hash xor sideToMoveKey
+            }
+            if (whiteCanCastleKingside) hash = hash xor castlingKeys[0]
+            if (whiteCanCastleQueenside) hash = hash xor castlingKeys[1]
+            if (blackCanCastleKingside) hash = hash xor castlingKeys[2]
+            if (blackCanCastleQueenside) hash = hash xor castlingKeys[3]
+            if (enPassantTarget != null) {
+                hash = hash xor enPassantFileKeys[enPassantTarget.file]
+            }
+            return hash
+        }
+
+        private fun pieceIndex(piece: Piece): Int {
+            val colorOffset = if (piece.color == Color.WHITE) 0 else PIECE_TYPE_COUNT
+            val typeIndex = when (piece.type) {
+                PieceType.PAWN -> 0
+                PieceType.KNIGHT -> 1
+                PieceType.BISHOP -> 2
+                PieceType.ROOK -> 3
+                PieceType.QUEEN -> 4
+                PieceType.KING -> 5
+            }
+            return colorOffset + typeIndex
         }
     }
 
@@ -159,10 +231,18 @@ data class GameState(
 
         val newMoveHistory = moveHistory + move
 
-        // Check for game end conditions
-        val newGameResult = checkGameResult(newBoard, newCurrentPlayer, newMoveHistory)
+        val newPositionHash = computePositionHash(
+            board = newBoard,
+            currentPlayer = newCurrentPlayer,
+            whiteCanCastleKingside = newWhiteCanCastleKingside,
+            whiteCanCastleQueenside = newWhiteCanCastleQueenside,
+            blackCanCastleKingside = newBlackCanCastleKingside,
+            blackCanCastleQueenside = newBlackCanCastleQueenside,
+            enPassantTarget = newEnPassantTarget
+        )
+        val newPositionHashes = positionHashes + newPositionHash
 
-        return GameState(
+        val provisionalState = GameState(
             board = newBoard,
             currentPlayer = newCurrentPlayer,
             whiteCanCastleKingside = newWhiteCanCastleKingside,
@@ -173,13 +253,19 @@ data class GameState(
             halfMoveClock = newHalfMoveClock,
             fullMoveNumber = newFullMoveNumber,
             moveHistory = newMoveHistory,
-            gameResult = newGameResult
+            positionHashes = newPositionHashes,
+            gameResult = GameResult.ONGOING
         )
+
+        // Check for game end conditions
+        val newGameResult = provisionalState.checkGameResult()
+
+        return provisionalState.copy(gameResult = newGameResult)
     }
 
-    private fun checkGameResult(board: Board, currentPlayer: Color, moveHistory: List<Move>): GameResult {
+    private fun checkGameResult(): GameResult {
         // Check for checkmate/stalemate
-        val legalMoves = MoveValidator.generateLegalMoves(board, this.copy(currentPlayer = currentPlayer))
+        val legalMoves = MoveValidator.generateLegalMoves(board, this)
         val isInCheck = MoveValidator.isKingInCheck(board, currentPlayer)
 
         return when {
@@ -188,15 +274,21 @@ data class GameState(
             }
             legalMoves.isEmpty() -> GameResult.DRAW // Stalemate
             halfMoveClock >= 100 -> GameResult.DRAW // 50-move rule
-            isThreefoldRepetition(moveHistory) -> GameResult.DRAW
+            isThreefoldRepetition(positionHashes) -> GameResult.DRAW
             isInsufficientMaterial(board) -> GameResult.DRAW
             else -> GameResult.ONGOING
         }
     }
 
-    private fun isThreefoldRepetition(moveHistory: List<Move>): Boolean {
-        // Simplified check - in a real implementation, you'd need to track position history
-        // This is a placeholder that always returns false
+    private fun isThreefoldRepetition(positionHashes: List<Long>): Boolean {
+        val seen = mutableMapOf<Long, Int>()
+        for (hash in positionHashes) {
+            val count = (seen[hash] ?: 0) + 1
+            if (count >= 3) {
+                return true
+            }
+            seen[hash] = count
+        }
         return false
     }
 
