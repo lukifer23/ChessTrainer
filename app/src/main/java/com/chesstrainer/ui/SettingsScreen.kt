@@ -11,25 +11,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.chesstrainer.engine.EngineInstaller
 import com.chesstrainer.chess.Color as ChessColor
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val settings = remember { Settings(context) }
+    val installer = remember { EngineInstaller(context) }
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedEngine by remember { mutableStateOf(settings.engineType) }
     var selectedBoardOrientation by remember { mutableStateOf(settings.boardOrientation) }
     var leelaNodes by remember { mutableStateOf(settings.leelaNodes.toString()) }
+    var leelaThreads by remember { mutableStateOf(settings.lc0Threads.toString()) }
+    var leelaBackend by remember { mutableStateOf(settings.lc0Backend) }
     var stockfishDepth by remember { mutableStateOf(settings.stockfishDepth.toString()) }
+    var leelaStatus by remember { mutableStateOf(installer.getStatus(EngineType.LEELA_CHESS_ZERO)) }
+    var stockfishStatus by remember { mutableStateOf(installer.getStatus(EngineType.STOCKFISH)) }
+    var installMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
+        stockfishStatus = installer.getStatus(EngineType.STOCKFISH)
+    }
 
     // Save settings when changed
-    LaunchedEffect(selectedEngine, selectedBoardOrientation, leelaNodes, stockfishDepth) {
+    LaunchedEffect(selectedEngine, selectedBoardOrientation, leelaNodes, leelaThreads, leelaBackend, stockfishDepth) {
         settings.engineType = selectedEngine
         settings.boardOrientation = selectedBoardOrientation
         settings.leelaNodes = leelaNodes.toIntOrNull() ?: 1000
+        settings.lc0Threads = leelaThreads.toIntOrNull() ?: 2
+        settings.lc0Backend = leelaBackend
         settings.stockfishDepth = stockfishDepth.toIntOrNull() ?: 15
     }
 
@@ -126,6 +142,34 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = leelaThreads,
+                                onValueChange = {
+                                    leelaThreads = it.filter { char -> char.isDigit() }
+                                },
+                                label = { Text("Threads") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Uses up to the available CPU cores.",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = leelaBackend,
+                                onValueChange = { leelaBackend = it },
+                                label = { Text("NN backend (e.g. cpu)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Text(
+                                text = "Set to cpu unless you bundle a GPU backend.",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
                         }
 
                         EngineType.STOCKFISH -> {
@@ -151,6 +195,83 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
                         }
+                    }
+                }
+            }
+
+            // Engine Setup
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = 4.dp
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Engine Setup",
+                        style = MaterialTheme.typography.h6
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Download engine binaries and (for LeelaChess0) network weights.",
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    EngineStatusRow(
+                        title = "LeelaChess0",
+                        status = leelaStatus.statusMessage,
+                        details = leelaStatus.weightsPath
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                installMessage = null
+                                coroutineScope.launch {
+                                    val result = installer.ensureInstalled(EngineType.LEELA_CHESS_ZERO)
+                                    leelaStatus = installer.getStatus(EngineType.LEELA_CHESS_ZERO)
+                                    installMessage = result.exceptionOrNull()?.message ?: "LeelaChess0 ready."
+                                }
+                            }
+                        ) {
+                            Text("Install LeelaChess0")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    EngineStatusRow(
+                        title = "Stockfish",
+                        status = stockfishStatus.statusMessage,
+                        details = stockfishStatus.enginePath
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                installMessage = null
+                                coroutineScope.launch {
+                                    val result = installer.ensureInstalled(EngineType.STOCKFISH)
+                                    stockfishStatus = installer.getStatus(EngineType.STOCKFISH)
+                                    installMessage = result.exceptionOrNull()?.message ?: "Stockfish ready."
+                                }
+                            }
+                        ) {
+                            Text("Install Stockfish")
+                        }
+                    }
+                    installMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.body2,
+                            color = if (message.contains("ready", ignoreCase = true)) {
+                                MaterialTheme.colors.primary
+                            } else {
+                                MaterialTheme.colors.error
+                            }
+                        )
                     }
                 }
             }
@@ -236,7 +357,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Professional chess training app with local engines. No internet required for gameplay.",
+                        text = "Professional chess training app with local engines. Download engines once for offline play.",
                         style = MaterialTheme.typography.body2,
                         color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                     )
@@ -312,6 +433,27 @@ private fun OrientationOption(
             style = MaterialTheme.typography.caption,
             color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
         )
+    }
+}
+
+@Composable
+private fun EngineStatusRow(
+    title: String,
+    status: String,
+    details: String?
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "$title: $status",
+            style = MaterialTheme.typography.body2
+        )
+        details?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            )
+        }
     }
 }
 

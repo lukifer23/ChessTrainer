@@ -25,6 +25,14 @@ class Settings(context: Context) {
         get() = preferences.getInt("stockfish_depth", 15)
         set(value) = preferences.edit().putInt("stockfish_depth", value).apply()
 
+    var lc0Threads: Int
+        get() = preferences.getInt("lc0_threads", 2)
+        set(value) = preferences.edit().putInt("lc0_threads", value).apply()
+
+    var lc0Backend: String
+        get() = preferences.getString("lc0_backend", "cpu")!!
+        set(value) = preferences.edit().putString("lc0_backend", value).apply()
+
     var boardOrientation: ChessColor
         get() = ChessColor.valueOf(preferences.getString("board_orientation", ChessColor.WHITE.name)!!)
         set(value) = preferences.edit().putString("board_orientation", value.name).apply()

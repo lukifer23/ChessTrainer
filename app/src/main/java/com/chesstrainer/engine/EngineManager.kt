@@ -33,6 +33,9 @@ class EngineManager(
 
     private var isEngineReady = false
     private var engineName = "Unknown Engine"
+    private var lc0WeightsFile: File? = null
+
+    private val installer = EngineInstaller(context)
 
     private val _responses = MutableSharedFlow<UCIParser.UCIResponse>()
     val responses: Flow<UCIParser.UCIResponse> = _responses.asSharedFlow()
@@ -63,12 +66,14 @@ class EngineManager(
                 return Result.success(Unit)
             }
 
-            // Extract engine binary if needed
-            val engineBinary = extractEngineBinary()
-            engineBinary.fold(
-                onSuccess = { binary ->
-                    val processBuilder = java.lang.ProcessBuilder(binary.absolutePath)
-                        .directory(binary.parentFile)
+            // Ensure engine binary (and weights, if needed) are installed
+            val engineAssets = installer.ensureInstalled(settings.engineType)
+            engineAssets.fold(
+                onSuccess = { assets ->
+                    lc0WeightsFile = assets.weightsFile
+
+                    val processBuilder = java.lang.ProcessBuilder(assets.engineBinary.absolutePath)
+                        .directory(assets.engineBinary.parentFile)
                         .redirectErrorStream(true)
 
                     process = processBuilder.start().also { proc: java.lang.Process ->
@@ -90,36 +95,6 @@ class EngineManager(
             )
         } catch (e: Exception) {
             Result.failure(Exception("Failed to start engine: ${e.message}", e))
-        }
-    }
-
-    /**
-     * Extract engine binary from assets to app data directory
-     */
-    private fun extractEngineBinary(): Result<File> {
-        return try {
-            val engineType = settings.engineType.name.lowercase()
-            val assetPath = "engines/$engineType"
-            val targetFile = File(context.filesDir, engineType)
-
-            // Check if binary already exists and is executable
-            if (targetFile.exists() && targetFile.canExecute()) {
-                return Result.success(targetFile)
-            }
-
-            // Extract from assets
-            context.assets.open(assetPath).use { input ->
-                targetFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            // Make executable
-            targetFile.setExecutable(true)
-
-            Result.success(targetFile)
-        } catch (e: Exception) {
-            Result.failure(Exception("Failed to extract engine binary: ${e.message}", e))
         }
     }
 
@@ -332,6 +307,15 @@ class EngineManager(
                 settings.leelaNodes.takeIf { it > 0 }?.let { nodes ->
                     results.add(setOption("MaxNodes", nodes))
                 }
+                val availableThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                val lc0Threads = settings.lc0Threads.coerceIn(1, availableThreads)
+                results.add(setOption("Threads", lc0Threads))
+                settings.lc0Backend.trim().takeIf { it.isNotEmpty() }?.let { backend ->
+                    results.add(setOption("Backend", backend))
+                }
+                lc0WeightsFile?.let { weights ->
+                    results.add(setOption("WeightsFile", weights.absolutePath))
+                } ?: return Result.failure(Exception("LC0 weights file missing."))
             }
             com.chesstrainer.utils.EngineType.STOCKFISH -> {
                 // Stockfish-specific options
