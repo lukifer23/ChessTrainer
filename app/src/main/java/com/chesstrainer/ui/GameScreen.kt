@@ -1,5 +1,10 @@
 package com.chesstrainer.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -14,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.chesstrainer.chess.*
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
+import java.io.IOException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -42,6 +48,7 @@ fun GameScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var gameState by remember { mutableStateOf(GameState()) }
+    var initialGameState by remember { mutableStateOf(GameState()) }
     var gameMode by remember { mutableStateOf(GameMode.HUMAN_VS_ENGINE) }
     var selectedSquare by remember { mutableStateOf<Square?>(null) }
     var availableMoves by remember { mutableStateOf<List<Move>>(emptyList()) }
@@ -53,6 +60,24 @@ fun GameScreen(
     var showBoard by remember { mutableStateOf(false) }
     var gameStarted by remember { mutableStateOf(false) }
     var currentEngine by remember { mutableStateOf(settings.engineType) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var pendingPgn by remember { mutableStateOf("") }
+
+    val savePgnLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/x-chess-pgn")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(pendingPgn.toByteArray())
+            } ?: throw IOException("Unable to open output stream")
+            Toast.makeText(context, "PGN saved.", Toast.LENGTH_SHORT).show()
+        } catch (e: SecurityException) {
+            Toast.makeText(context, "Storage permission denied.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to save PGN.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     fun makeMove(move: Move) {
         try {
@@ -70,6 +95,55 @@ fun GameScreen(
             draggedPiece = null
             dragOffset = Offset.Zero
         }
+    }
+
+    fun rebuildGameStateFromHistory(history: List<Move>): GameState {
+        var rebuiltState = initialGameState.copy(
+            moveHistory = emptyList(),
+            gameResult = GameResult.ONGOING
+        )
+        history.forEach { move ->
+            rebuiltState = rebuiltState.makeMove(move)
+        }
+        return rebuiltState
+    }
+
+    fun undoMove() {
+        if (gameState.moveHistory.isEmpty()) return
+        val updatedHistory = gameState.moveHistory.dropLast(1)
+        val restoredState = rebuildGameStateFromHistory(updatedHistory)
+        gameState = restoredState
+        lastMove = updatedHistory.lastOrNull()
+        selectedSquare = null
+        availableMoves = emptyList()
+        draggedPiece = null
+        dragOffset = Offset.Zero
+        showGameOverDialog = false
+        gameOverMessage = ""
+    }
+
+    fun buildPgnMetadata(): PgnMetadata {
+        val engineLabel = currentEngine.name.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
+        val (whitePlayer, blackPlayer) = when (gameMode) {
+            GameMode.HUMAN_VS_ENGINE -> "Human" to engineLabel
+            GameMode.ENGINE_VS_ENGINE -> engineLabel to engineLabel
+            GameMode.FREE_PLAY -> "White" to "Black"
+        }
+        return PgnMetadata(
+            event = "ChessTrainer",
+            site = "Local",
+            white = whitePlayer,
+            black = blackPlayer
+        )
+    }
+
+    fun exportPgn() {
+        pendingPgn = PgnWriter.write(
+            gameState = gameState,
+            initialState = initialGameState,
+            metadata = buildPgnMetadata()
+        )
+        showExportDialog = true
     }
 
     // Update available moves when selected square changes
@@ -212,6 +286,8 @@ fun GameScreen(
                 onClick = {
                     gameMode = GameMode.HUMAN_VS_ENGINE
                     currentEngine = settings.engineType
+                    initialGameState = GameState()
+                    gameState = initialGameState
                     gameStarted = true
                     showBoard = true
                 },
@@ -226,6 +302,8 @@ fun GameScreen(
                 onClick = {
                     gameMode = GameMode.ENGINE_VS_ENGINE
                     currentEngine = settings.engineType
+                    initialGameState = GameState()
+                    gameState = initialGameState
                     gameStarted = true
                     showBoard = true
                 },
@@ -239,6 +317,8 @@ fun GameScreen(
             OutlinedButton(
                 onClick = {
                     gameMode = GameMode.FREE_PLAY
+                    initialGameState = GameState()
+                    gameState = initialGameState
                     gameStarted = true
                     showBoard = true
                 },
@@ -308,10 +388,10 @@ fun GameScreen(
 
                     // Action buttons
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(onClick = { /* Undo move */ }, modifier = Modifier.size(36.dp)) {
+                        IconButton(onClick = { undoMove() }, modifier = Modifier.size(36.dp)) {
                             Text("↶", fontSize = 18.sp)
                         }
-                        IconButton(onClick = { /* Export game */ }, modifier = Modifier.size(36.dp)) {
+                        IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {
                             Text("📄", fontSize = 18.sp)
                         }
                         IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
@@ -410,7 +490,8 @@ fun GameScreen(
                     ) {
                         Button(
                             onClick = {
-                                gameState = GameState()
+                                initialGameState = GameState()
+                                gameState = initialGameState
                                 selectedSquare = null
                                 availableMoves = emptyList()
                                 lastMove = null
@@ -450,7 +531,8 @@ fun GameScreen(
                 ) {
                     TextButton(onClick = {
                         showGameOverDialog = false
-                        gameState = GameState()
+                        initialGameState = GameState()
+                        gameState = initialGameState
                         selectedSquare = null
                         availableMoves = emptyList()
                         lastMove = null
@@ -458,6 +540,53 @@ fun GameScreen(
                         dragOffset = Offset.Zero
                     }) {
                         Text("New Game")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            title = { Text("Export PGN") },
+            text = { Text("Share or save the current game as PGN.") },
+            buttons = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showExportDialog = false }) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = {
+                        showExportDialog = false
+                        try {
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "ChessTrainer Game")
+                                putExtra(Intent.EXTRA_TEXT, pendingPgn)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share PGN"))
+                        } catch (e: ActivityNotFoundException) {
+                            Toast.makeText(context, "No app available to share PGN.", Toast.LENGTH_LONG).show()
+                        } catch (e: SecurityException) {
+                            Toast.makeText(context, "Sharing permission denied.", Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Failed to share PGN.", Toast.LENGTH_LONG).show()
+                        }
+                    }) {
+                        Text("Share")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = {
+                        showExportDialog = false
+                        savePgnLauncher.launch("chesstrainer-game.pgn")
+                    }) {
+                        Text("Save")
                     }
                 }
             }
