@@ -16,6 +16,7 @@ import com.chesstrainer.ui.GameScreen
 import com.chesstrainer.ui.SettingsScreen
 import com.chesstrainer.ui.AnalysisScreen
 import com.chesstrainer.ui.LessonsScreen
+import com.chesstrainer.ui.ScorecardScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,14 +44,16 @@ fun ChessTrainerApp() {
                 onStartGame = { navController.navigate("game") },
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToAnalysis = { navController.navigate("analysis") },
-                onNavigateToLessons = { navController.navigate("lessons") }
+                onNavigateToLessons = { navController.navigate("lessons") },
+                onNavigateToScorecard = { navController.navigate("scorecard") }
             )
         }
         composable("game") {
             GameScreen(
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToAnalysis = { navController.navigate("analysis") },
-                onNavigateToLessons = { navController.navigate("lessons") }
+                onNavigateToLessons = { navController.navigate("lessons") },
+                onNavigateToScorecard = { navController.navigate("scorecard") }
             )
         }
         composable("settings") {
@@ -68,6 +71,11 @@ fun ChessTrainerApp() {
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+        composable("scorecard") {
+            ScorecardScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -76,7 +84,8 @@ fun HomeScreen(
     onStartGame: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAnalysis: () -> Unit,
-    onNavigateToLessons: () -> Unit
+    onNavigateToLessons: () -> Unit,
+    onNavigateToScorecard: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -120,6 +129,9 @@ fun HomeScreen(
             }
             OutlinedButton(onClick = onNavigateToSettings) {
                 Text("⚙️ Settings")
+            }
+            OutlinedButton(onClick = onNavigateToScorecard) {
+                Text("🏆 Scorecard")
             }
         }
 
