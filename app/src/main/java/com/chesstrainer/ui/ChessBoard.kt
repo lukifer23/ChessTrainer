@@ -165,7 +165,7 @@ private fun DrawScope.drawBoard(
 ) {
     val boardSize = min(size.width, size.height).toFloat()
     val squareSize = boardSize / 8f
-    val pieceSize = squareSize * 0.8f
+    val pieceSize = squareSize * 0.76f
 
     // Draw squares
     for (rank in 0..7) {
