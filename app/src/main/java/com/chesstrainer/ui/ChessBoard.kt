@@ -3,7 +3,9 @@ package com.chesstrainer.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -13,11 +15,11 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,7 +28,6 @@ import androidx.core.graphics.drawable.toBitmap
 import com.chesstrainer.R
 import com.chesstrainer.chess.*
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 private fun loadVectorAsBitmap(context: android.content.Context, resId: Int, density: Float): ImageBitmap {
     try {
@@ -76,60 +77,80 @@ fun ChessBoard(
     val pieceImages = rememberPieceImages()
 
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Fixed board size for consistent appearance
-    val boardSize = 320f // Fixed 320dp board size
-    val squareSize = boardSize / 8f
-    val pieceSize = squareSize * 0.85f // Pieces should fill most of the square
+    BoxWithConstraints(modifier = modifier) {
+        val boardSizeDp = min(maxWidth, maxHeight)
+        val density = LocalDensity.current
+        val fallbackSizePx = with(density) { boardSizeDp.roundToPx() }
 
-    Canvas(
-        modifier = modifier
-            .requiredSize(boardSize.dp, boardSize.dp) // Use requiredSize for exact sizing
-            .pointerInput(gameState, boardOrientation) { // Include all dependencies for recomposition
-                detectTapGestures(
-                    onTap = { offset ->
-                        val square = positionToSquare(offset, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        square?.let { onSquareClick(it) }
-                    }
-                )
-            }
-            .pointerInput(gameState, boardOrientation) { // Include all dependencies for recomposition
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val square = positionToSquare(offset, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        if (square != null) {
-                            val piece = gameState.board.getPiece(square)
-                            if (piece != null && piece.color == gameState.currentPlayer) {
-                                onDragStart(square)
+        Canvas(
+            modifier = Modifier
+                .size(boardSizeDp)
+                .onSizeChanged { newSize ->
+                    canvasSize = newSize
+                }
+                .pointerInput(gameState, boardOrientation, canvasSize) { // Include all dependencies for recomposition
+                    detectTapGestures(
+                        onTap = { offset ->
+                            val sizeForInput = if (canvasSize == IntSize.Zero) {
+                                IntSize(fallbackSizePx, fallbackSizePx)
+                            } else {
+                                canvasSize
                             }
+                            val square = positionToSquare(offset, sizeForInput, boardOrientation)
+                            square?.let { onSquareClick(it) }
                         }
-                    },
-                    onDrag = { change, dragAmount ->
-                        dragPosition = change.position
-                    },
-                    onDragEnd = {
-                        val square = positionToSquare(dragPosition, IntSize(boardSize.toInt(), boardSize.toInt()), boardOrientation)
-                        onDragEnd(square)
-                        dragPosition = Offset.Zero
-                    },
-                    onDragCancel = {
-                        onDragEnd(null)
-                        dragPosition = Offset.Zero
-                    }
-                )
-            }
+                    )
+                }
+                .pointerInput(gameState, boardOrientation, canvasSize) { // Include all dependencies for recomposition
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val sizeForInput = if (canvasSize == IntSize.Zero) {
+                                IntSize(fallbackSizePx, fallbackSizePx)
+                            } else {
+                                canvasSize
+                            }
+                            val square = positionToSquare(offset, sizeForInput, boardOrientation)
+                            if (square != null) {
+                                val piece = gameState.board.getPiece(square)
+                                if (piece != null && piece.color == gameState.currentPlayer) {
+                                    onDragStart(square)
+                                }
+                            }
+                        },
+                        onDrag = { change, dragAmount ->
+                            dragPosition = change.position
+                        },
+                        onDragEnd = {
+                            val sizeForInput = if (canvasSize == IntSize.Zero) {
+                                IntSize(fallbackSizePx, fallbackSizePx)
+                            } else {
+                                canvasSize
+                            }
+                            val square = positionToSquare(dragPosition, sizeForInput, boardOrientation)
+                            onDragEnd(square)
+                            dragPosition = Offset.Zero
+                        },
+                        onDragCancel = {
+                            onDragEnd(null)
+                            dragPosition = Offset.Zero
+                        }
+                    )
+                }
         ) {
-        drawBoard(
-            gameState,
-            theme,
-            selectedSquare,
-            availableMoves,
-            lastMove,
-            boardOrientation,
-            pieceImages,
-            draggedPiece,
-            dragPosition
-        )
+            drawBoard(
+                gameState,
+                theme,
+                selectedSquare,
+                availableMoves,
+                lastMove,
+                boardOrientation,
+                pieceImages,
+                draggedPiece,
+                dragPosition
+            )
+        }
     }
 }
 
