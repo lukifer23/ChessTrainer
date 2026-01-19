@@ -67,10 +67,10 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
                 }
             }
             EngineType.LEELA_CHESS_ZERO -> {
-                leelaEngine.getAnalysis(state).getOrNull()?.let { analysis ->
+                leelaEngine.getAnalysis(state).getOrNull()?.firstOrNull()?.let { analysis ->
                     LessonAnalysis(
-                        bestMove = analysis.bestMove,
-                        score = analysis.evaluation
+                        bestMove = analysis.principalVariation.firstOrNull(),
+                        score = analysis.score
                     )
                 }
             }

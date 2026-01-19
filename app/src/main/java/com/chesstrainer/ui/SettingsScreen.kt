@@ -18,6 +18,8 @@ import com.chesstrainer.chess.Color as ChessColor
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
 import java.io.File
+import androidx.compose.ui.res.stringResource
+import com.chesstrainer.R
 import kotlinx.coroutines.launch
 
 @Composable
@@ -107,10 +109,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
     ) {
         // Header
         TopAppBar(
-            title = { Text("Settings") },
+            title = { Text(stringResource(R.string.settings_title)) },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             }
         )
@@ -128,12 +130,12 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Chess Engine",
+                        text = stringResource(R.string.chess_engine),
                         style = MaterialTheme.typography.h6
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Choose which chess engine to use for analysis and gameplay",
+                        text = stringResource(R.string.choose_engine_desc),
                         style = MaterialTheme.typography.body2,
                         color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                     )
@@ -142,22 +144,22 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         EngineOption(
-                            title = "LeelaChess0 (Neural Network)",
-                            description = "Uses deep learning for position evaluation. Best for strategic play.",
+                            title = stringResource(R.string.lc0_title),
+                            description = stringResource(R.string.lc0_desc),
                             selected = selectedEngine == EngineType.LEELA_CHESS_ZERO,
                             onSelect = { selectedEngine = EngineType.LEELA_CHESS_ZERO }
                         )
 
                         EngineOption(
-                            title = "Stockfish (Traditional Engine)",
-                            description = "Classical chess engine with brute-force search. Excellent tactical analysis.",
+                            title = stringResource(R.string.stockfish_title),
+                            description = stringResource(R.string.stockfish_desc),
                             selected = selectedEngine == EngineType.STOCKFISH,
                             onSelect = { selectedEngine = EngineType.STOCKFISH }
                         )
 
                         EngineOption(
-                            title = "GGUF / Llama (Experimental)",
-                            description = "Use local LLM models (GGUF format) for chess inference.",
+                            title = stringResource(R.string.gguf_title),
+                            description = stringResource(R.string.gguf_desc),
                             selected = selectedEngine == EngineType.GGUF,
                             onSelect = { selectedEngine = EngineType.GGUF }
                         )
@@ -172,7 +174,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Engine Parameters",
+                        text = stringResource(R.string.engine_parameters),
                         style = MaterialTheme.typography.h6
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -180,7 +182,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                     when (selectedEngine) {
                         EngineType.LEELA_CHESS_ZERO -> {
                             Text(
-                                text = "LeelaChess0 analyzes positions by simulating thousands of games using neural networks.",
+                                text = stringResource(R.string.lc0_info),
                                 style = MaterialTheme.typography.body2,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                             )
@@ -191,12 +193,12 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 onValueChange = {
                                     leelaNodes = it.filter { char -> char.isDigit() }
                                 },
-                                label = { Text("Nodes per move") },
+                                label = { Text(stringResource(R.string.nodes_per_move)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Text(
-                                text = "Higher values = stronger play but slower moves (100-10000)",
+                                text = stringResource(R.string.nodes_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -206,12 +208,12 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 onValueChange = {
                                     leelaThreads = it.filter { char -> char.isDigit() }
                                 },
-                                label = { Text("Threads") },
+                                label = { Text(stringResource(R.string.threads)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Text(
-                                text = "Uses up to the available CPU cores.",
+                                text = stringResource(R.string.threads_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -220,14 +222,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 OutlinedTextField(
                                     value = leelaBackend,
                                     onValueChange = { leelaBackend = it },
-                                    label = { Text("NN backend") },
+                                    label = { Text(stringResource(R.string.nn_backend)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     trailingIcon = {
                                         IconButton(onClick = { backendExpanded = !backendExpanded }) {
                                             Icon(
                                                 imageVector = Icons.Default.ArrowDropDown,
-                                                contentDescription = "Backend options"
+                                                contentDescription = stringResource(R.string.backend_options)
                                             )
                                         }
                                     }
@@ -251,7 +253,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 }
                             }
                             Text(
-                                text = "GPU, OpenCL, or Metal backends require compatible engine builds and drivers.",
+                                text = stringResource(R.string.backend_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -266,7 +268,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             if (supportedBackends.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Supported backends: ${supportedBackends.joinToString(", ")}",
+                                    text = stringResource(R.string.supported_backends, supportedBackends.joinToString(", ")),
                                     style = MaterialTheme.typography.caption,
                                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                                 )
@@ -277,13 +279,13 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             OutlinedTextField(
                                 value = customWeightsPath,
                                 onValueChange = { customWeightsPath = it },
-                                label = { Text("Custom Weights Path (Optional)") },
-                                placeholder = { Text("/path/to/weights.pb.gz") },
+                                label = { Text(stringResource(R.string.custom_weights_path)) },
+                                placeholder = { Text(stringResource(R.string.weights_placeholder)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Text(
-                                text = "Leave empty to use downloaded weights.",
+                                text = stringResource(R.string.weights_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -291,7 +293,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
 
                         EngineType.STOCKFISH -> {
                             Text(
-                                text = "Stockfish evaluates positions by searching millions of possible moves.",
+                                text = stringResource(R.string.stockfish_info),
                                 style = MaterialTheme.typography.body2,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                             )
@@ -302,19 +304,19 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                                 onValueChange = {
                                     stockfishDepth = it.filter { char -> char.isDigit() }
                                 },
-                                label = { Text("Search depth") },
+                                label = { Text(stringResource(R.string.search_depth)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Text(
-                                text = "Higher values = stronger play but slower moves (10-25)",
+                                text = stringResource(R.string.depth_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
                         }
                         EngineType.GGUF -> {
                             Text(
-                                text = "GGUF Engine uses large language models quantized for local execution.",
+                                text = stringResource(R.string.gguf_info),
                                 style = MaterialTheme.typography.body2,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                             )
@@ -323,13 +325,13 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                             OutlinedTextField(
                                 value = ggufModelPath,
                                 onValueChange = { ggufModelPath = it },
-                                label = { Text("Model Path") },
-                                placeholder = { Text("/path/to/model.gguf") },
+                                label = { Text(stringResource(R.string.model_path)) },
+                                placeholder = { Text(stringResource(R.string.model_placeholder)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Text(
-                                text = "Absolute path to the GGUF model file.",
+                                text = stringResource(R.string.model_desc),
                                 style = MaterialTheme.typography.caption,
                                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
@@ -345,7 +347,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Engine Setup",
+                        text = stringResource(R.string.engine_setup),
                         style = MaterialTheme.typography.h6
                     )
                     Spacer(modifier = Modifier.height(8.dp))

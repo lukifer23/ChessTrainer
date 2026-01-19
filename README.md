@@ -103,41 +103,9 @@ app/src/main/java/com/chesstrainer/
 - **Gradle**: 8.2+
 
 ### Engine Binaries
-
-The app requires chess engine binaries in `app/src/main/assets/engines/`:
-
-#### LeelaChess0 (lc0)
-```bash
-# Download ARM64 binary for Android
-# Place as: app/src/main/assets/engines/lc0
-# Make executable: chmod +x app/src/main/assets/engines/lc0
-```
-
-#### Stockfish
-```bash
-# Download ARM64 binary for Android
-# Place as: app/src/main/assets/engines/stockfish
-# Make executable: chmod +x app/src/main/assets/engines/stockfish
-```
-
-**Note**: Engine binaries must be ARM64 architecture for Android compatibility.
-
-## 🚀 Getting Started
-
-### 1. Clone and Setup
-```bash
-git clone <repository-url>
-cd ChessTrainer
-```
-
-### 2. Engine Setup
-```bash
-# Create engines directory
-mkdir -p app/src/main/assets/engines
-
-# Download and place engine binaries
-# lc0 and stockfish ARM64 binaries required
-```
+- **Bundled Engines**: Stockfish 16.1 and Leela Chess Zero 0.32.1 are **bundled** with the app as native libraries (`jniLibs`).
+- **No Setup Required**: You do NOT need to manually download or chmod binaries. The app handles everything automatically.
+- **Architecture**: The app supports `arm64-v8a` devices (most modern Android phones).
 
 ### 3. Build the App
 ```bash

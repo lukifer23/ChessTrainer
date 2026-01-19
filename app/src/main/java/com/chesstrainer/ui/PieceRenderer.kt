@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.chesstrainer.R
 import com.chesstrainer.chess.Piece
 import com.chesstrainer.chess.PieceType
@@ -49,11 +50,34 @@ object PieceRenderer {
         contentDescription: String? = null
     ) {
         val resourceId = getPieceResourceId(piece)
+        val description = contentDescription ?: stringResource(getPieceDescriptionId(piece))
+        
         Image(
             painter = painterResource(id = resourceId),
-            contentDescription = contentDescription ?: "${piece.color.name.lowercase()} ${piece.type.name.lowercase()}",
+            contentDescription = description,
             modifier = modifier
         )
+    }
+
+    private fun getPieceDescriptionId(piece: Piece): Int {
+        return when (piece.color) {
+            ChessColor.WHITE -> when (piece.type) {
+                PieceType.KING -> R.string.desc_white_king
+                PieceType.QUEEN -> R.string.desc_white_queen
+                PieceType.ROOK -> R.string.desc_white_rook
+                PieceType.BISHOP -> R.string.desc_white_bishop
+                PieceType.KNIGHT -> R.string.desc_white_knight
+                PieceType.PAWN -> R.string.desc_white_pawn
+            }
+            ChessColor.BLACK -> when (piece.type) {
+                PieceType.KING -> R.string.desc_black_king
+                PieceType.QUEEN -> R.string.desc_black_queen
+                PieceType.ROOK -> R.string.desc_black_rook
+                PieceType.BISHOP -> R.string.desc_black_bishop
+                PieceType.KNIGHT -> R.string.desc_black_knight
+                PieceType.PAWN -> R.string.desc_black_pawn
+            }
+        }
     }
 
     /**

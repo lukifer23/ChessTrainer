@@ -1,20 +1,20 @@
 -- Merging decision tree log ---
 provider#androidx.core.content.FileProvider
-INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:29:9-37:20
+INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:31:9-39:20
 	android:grantUriPermissions
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:33:13-47
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:35:13-47
 	android:authorities
 		INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:31:13-64
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:33:13-64
 	android:exported
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:32:13-37
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:34:13-37
 	android:name
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:30:13-62
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:32:13-62
 manifest
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-40:12
-INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-40:12
-INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-40:12
-INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-40:12
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-42:12
+INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-42:12
+INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-42:12
+INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:2:1-42:12
 MERGED from [io.coil-kt:coil-compose:2.5.0] /Users/admin/.gradle/caches/transforms-3/54c448b39423fdf864d8260efd1dbdcc/transformed/coil-compose-2.5.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil-compose-base:2.5.0] /Users/admin/.gradle/caches/transforms-3/c701189e78f52e58eecca37eb2a3c6cf/transformed/coil-compose-base-2.5.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil:2.5.0] /Users/admin/.gradle/caches/transforms-3/2aefeece6b412d750d1a0aaf148e9543/transformed/coil-2.5.0/AndroidManifest.xml:2:1-7:12
@@ -118,8 +118,7 @@ ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManife
 	android:name
 		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:8:22-77
 application
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:10:5-38:19
-INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:10:5-38:19
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:10:5-40:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/admin/.gradle/caches/transforms-3/f42e32196135c8e4d5972520bc4b895d/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/admin/.gradle/caches/transforms-3/f42e32196135c8e4d5972520bc4b895d/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /Users/admin/.gradle/caches/transforms-3/efe6d829471c8f03952d3485ee9467df/transformed/ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
@@ -139,47 +138,49 @@ MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/admin/.gra
 MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/admin/.gradle/caches/transforms-3/bd50c3342304ece3fc0f4987dbf8e037/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
 MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/admin/.gradle/caches/transforms-3/bd50c3342304ece3fc0f4987dbf8e037/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
 	android:extractNativeLibs
-		INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:13:9-41
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.12.0] /Users/admin/.gradle/caches/transforms-3/d1e4a685b1001794fbcfe4ee9c157a7e/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 	android:label
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:14:9-41
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:16:9-41
 	android:fullBackupContent
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:13:9-54
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:14:9-54
 	tools:targetApi
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:17:9-29
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:19:9-29
+	android:icon
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:15:9-55
 	android:allowBackup
 		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:11:9-35
 	android:theme
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:15:9-50
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:17:9-50
 	android:dataExtractionRules
 		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:12:9-65
 	android:usesCleartextTraffic
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:16:9-44
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:18:9-44
 activity#com.chesstrainer.MainActivity
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:19:9-27:20
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:21:9-29:20
 	android:exported
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:21:13-36
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:23:13-36
 	android:theme
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:22:13-54
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:24:13-54
 	android:name
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:20:13-41
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:22:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:23:13-26:29
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:25:13-28:29
 action#android.intent.action.MAIN
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:24:17-69
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:26:17-69
 	android:name
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:24:25-66
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:26:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:25:17-77
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:27:17-77
 	android:name
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:25:27-74
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:27:27-74
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:34:13-36:54
+ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:36:13-38:54
 	android:resource
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:36:17-51
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:38:17-51
 	android:name
-		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:35:17-67
+		ADDED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:37:17-67
 uses-sdk
 INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml

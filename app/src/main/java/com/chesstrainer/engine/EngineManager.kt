@@ -79,53 +79,74 @@ class EngineManager(
 
             uciOptions.clear()
 
-            // Ensure engine binary (and weights, if needed) are installed
-            android.util.Log.d("EngineManager", "Ensuring engine is installed")
-            val engineAssets = installer.ensureInstalled(settings.engineType, onStatusUpdate)
-            engineAssets.fold(
-                onSuccess = { assets ->
-                    android.util.Log.d("EngineManager", "Engine assets: ${assets.engineBinary.absolutePath}")
-                    
-                    // Validate binary before attempting to start
-                    if (assets.engineBinary.length() == 0L) {
-                        return@fold Result.failure(Exception("Engine binary is empty (0 bytes). Please reinstall the engine."))
-                    }
-
-                    lc0WeightsFile = assets.weightsFile
-
-                    // Special handling for GGUF stub
-                    if (settings.engineType == com.chesstrainer.utils.EngineType.GGUF && 
-                        (assets.engineBinary.absolutePath == "/dev/null" || !assets.engineBinary.exists())) {
-                         val msg = "GGUF Engine implementation is incomplete (no runner binary). Please use Stockfish or Leela."
-                         android.util.Log.e("EngineManager", msg)
-                         return@fold Result.failure(Exception(msg))
-                    }
-
-                    val processBuilder = java.lang.ProcessBuilder(assets.engineBinary.absolutePath)
-                        .directory(assets.engineBinary.parentFile)
-                        .redirectErrorStream(true)
-
-                    android.util.Log.d("EngineManager", "Starting process")
-                    process = processBuilder.start().also { proc: java.lang.Process ->
-                        android.util.Log.d("EngineManager", "Process started successfully")
-                        writer = BufferedWriter(OutputStreamWriter(proc.outputStream))
-                        reader = BufferedReader(InputStreamReader(proc.inputStream))
-
-                        // Start output monitoring
-                        startOutputMonitoring()
-
-                        // Initialize UCI protocol
-                        initializeEngine()
-                        waitForReadyOk()
-                    }
-
-                    Result.success(Unit)
-                },
-                onFailure = { error ->
-                    android.util.Log.e("EngineManager", "Failed to install engine", error)
-                    Result.failure(error)
+            // Resolve engine binary path
+            // For Stockfish and Leela, we now use bundled native libraries to comply with Android 10+ W^X restrictions.
+            val nativeLibDir = context.applicationInfo.nativeLibraryDir
+            val engineBinary = when (settings.engineType) {
+                com.chesstrainer.utils.EngineType.STOCKFISH -> File(nativeLibDir, "libstockfish.so")
+                com.chesstrainer.utils.EngineType.LEELA_CHESS_ZERO -> File(nativeLibDir, "liblc0.so")
+                com.chesstrainer.utils.EngineType.GGUF -> {
+                    // GGUF still experimental/stub
+                    File("/dev/null") 
                 }
-            )
+            }
+            
+            android.util.Log.d("EngineManager", "Resolved engine binary: ${engineBinary.absolutePath}")
+
+            // For LC0, we still need to ensure weights are downloaded
+            if (settings.engineType == com.chesstrainer.utils.EngineType.LEELA_CHESS_ZERO) {
+                android.util.Log.d("EngineManager", "Ensuring LC0 weights are installed")
+                // We use installer ONLY for weights now
+                val assets = installer.ensureInstalled(settings.engineType, onStatusUpdate)
+                assets.onSuccess { 
+                    lc0WeightsFile = it.weightsFile
+                }.onFailure {
+                     return Result.failure(it)
+                }
+            }
+
+            // Validate binary
+            if (!engineBinary.exists()) {
+                val msg = "Engine binary not found at ${engineBinary.absolutePath}. Please reinstall app."
+                android.util.Log.e("EngineManager", msg)
+                return Result.failure(Exception(msg))
+            }
+
+            if (settings.engineType == com.chesstrainer.utils.EngineType.GGUF) {
+                 val msg = "GGUF Engine implementation is incomplete (no runner binary). Please use Stockfish or Leela."
+                 android.util.Log.e("EngineManager", msg)
+                 return Result.failure(Exception(msg))
+            }
+
+            val cmdArgs = mutableListOf(engineBinary.absolutePath)
+            
+            // Pass weights directly as CLI argument for LC0
+            if (settings.engineType == com.chesstrainer.utils.EngineType.LEELA_CHESS_ZERO) {
+                lc0WeightsFile?.absolutePath?.let { weightsPath ->
+                   cmdArgs.add("--weights=$weightsPath")
+                }
+            }
+
+            val processBuilder = java.lang.ProcessBuilder(cmdArgs)
+                .directory(context.filesDir) // Run in filesDir so it can write logs/temp files if needed
+                .redirectErrorStream(true)
+
+            android.util.Log.d("EngineManager", "Starting process: ${engineBinary.absolutePath}")
+            process = processBuilder.start().also { proc: java.lang.Process ->
+                android.util.Log.d("EngineManager", "Process started successfully")
+                writer = BufferedWriter(OutputStreamWriter(proc.outputStream))
+                reader = BufferedReader(InputStreamReader(proc.inputStream))
+
+                // Start output monitoring
+                startOutputMonitoring()
+
+                // Initialize UCI protocol
+                initializeEngine()
+                waitForReadyOk()
+            }
+
+            Result.success(Unit)
+
         } catch (e: Exception) {
             android.util.Log.e("EngineManager", "Failed to start engine", e)
             Result.failure(Exception("Failed to start engine: ${e.message}", e))
@@ -143,8 +164,12 @@ class EngineManager(
                         val line = withTimeoutOrNull(100) {
                             reader.readLine()
                         }
-
-                        line?.let { processLine(it) }
+                        
+                        // Log EVERYTHING from engine to debug startup issues
+                        if (line != null) {
+                            android.util.Log.d("EngineIO", "RAW: $line") 
+                            processLine(line)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -203,8 +228,8 @@ class EngineManager(
         try {
             sendCommand(UCIParser.uciCommand())
 
-            // Wait for uciok response
-            withTimeout(5000) {
+            // Wait for uciok response - INCREASED TIMEOUT to 15s for slow devices/LC0 init
+            withTimeout(15000) {
                 responses.collect { response ->
                     if (response is UCIParser.UCIResponse.UciOkResponse) {
                         throw InitializationCompleteException()

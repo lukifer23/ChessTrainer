@@ -1,0 +1,688 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.2.2" type="incidents">
+
+    <incident
+        id="TypographyDashes"
+        severity="warning"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?">
+        <fix-replace
+            description="Replace with –"
+            oldString="-"
+            replacement="–"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="53"
+            column="31"
+            startOffset="2625"
+            endLine="53"
+            endColumn="89"
+            endOffset="2683"/>
+    </incident>
+
+    <incident
+        id="TypographyDashes"
+        severity="warning"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?">
+        <fix-replace
+            description="Replace with –"
+            oldString="-"
+            replacement="–"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="66"
+            column="31"
+            startOffset="3547"
+            endLine="66"
+            endColumn="85"
+            endOffset="3601"/>
+    </incident>
+
+    <incident
+        id="FullBackupContent"
+        severity="fatal"
+        message="`engines/` is not in an included path">
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/data_extraction_rules.xml"
+            line="8"
+            column="42"
+            startOffset="323"
+            endLine="8"
+            endColumn="50"
+            endOffset="331"/>
+    </incident>
+
+    <incident
+        id="FullBackupContent"
+        severity="fatal"
+        message="`engines/` is not in an included path">
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/xml/data_extraction_rules.xml"
+            line="15"
+            column="42"
+            startOffset="618"
+            endLine="15"
+            endColumn="50"
+            endOffset="626"/>
+    </incident>
+
+    <incident
+        id="ModifierParameter"
+        severity="warning"
+        message="Modifier parameter should be the first optional parameter">
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/ChessBoard.kt"
+            line="83"
+            column="5"
+            startOffset="3873"
+            endLine="83"
+            endColumn="13"
+            endOffset="3881"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6604"
+                    endOffset="6616"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6604"
+                    endOffset="6616"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="184"
+            column="105"
+            startOffset="6604"
+            endLine="184"
+            endColumn="115"
+            endOffset="6614"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6711"
+                    endOffset="6723"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6711"
+                    endOffset="6723"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="185"
+            column="95"
+            startOffset="6711"
+            endLine="185"
+            endColumn="105"
+            endOffset="6721"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6796"
+                    endOffset="6808"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="6796"
+                    endOffset="6808"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="186"
+            column="70"
+            startOffset="6796"
+            endLine="186"
+            endColumn="80"
+            endOffset="6806"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22506"
+                    endOffset="22518"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22506"
+                    endOffset="22518"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="549"
+            column="92"
+            startOffset="22506"
+            endLine="549"
+            endColumn="102"
+            endOffset="22516"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22893"
+                    endOffset="22905"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22893"
+                    endOffset="22905"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="560"
+            column="83"
+            startOffset="22893"
+            endLine="560"
+            endColumn="93"
+            endOffset="22903"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22967"
+                    endOffset="22979"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="22967"
+                    endOffset="22979"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="560"
+            column="157"
+            startOffset="22967"
+            endLine="560"
+            endColumn="167"
+            endOffset="22977"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25305"
+                    endOffset="25317"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25305"
+                    endOffset="25317"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="624"
+            column="126"
+            startOffset="25305"
+            endLine="624"
+            endColumn="136"
+            endOffset="25315"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25437"
+                    endOffset="25449"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25437"
+                    endOffset="25449"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="625"
+            column="118"
+            startOffset="25437"
+            endLine="625"
+            endColumn="128"
+            endOffset="25447"/>
+    </incident>
+
+    <incident
+        id="DefaultLocale"
+        severity="warning"
+        message="Implicitly using the default locale is a common source of bugs: Use `capitalize(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`.">
+        <fix-alternatives>
+            <fix-replace
+                description="Replace with `capitalize(Locale.ROOT)`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.ROOT)"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25505"
+                    endOffset="25517"/>
+            </fix-replace>
+            <fix-replace
+                description="Replace with `capitalize(Locale.getDefault())`"
+                family="Use explicit locale"
+                replacement="capitalize(java.util.Locale.getDefault())"
+                shortenNames="true">
+                <range
+                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+                    startOffset="25505"
+                    endOffset="25517"/>
+            </fix-replace>
+        </fix-alternatives>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/chesstrainer/ui/GameScreen.kt"
+            line="625"
+            column="186"
+            startOffset="25505"
+            endLine="625"
+            endColumn="196"
+            endOffset="25515"/>
+    </incident>
+
+    <incident
+        id="OldTargetApi"
+        severity="warning"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details.">
+        <fix-replace
+            description="Update targetSdkVersion to 36"
+            oldString="34"
+            replacement="36"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="14"
+            column="9"
+            startOffset="262"
+            endLine="14"
+            endColumn="23"
+            endOffset="276"/>
+    </incident>
+
+    <incident
+        id="KaptUsageInsteadOfKsp"
+        severity="warning"
+        message="This library supports using KSP instead of kapt, which greatly improves performance. Learn more: https://developer.android.com/studio/build/migrate-to-ksp">
+        <show-url
+            description="Learn about how to enable KSP and use the KSP processor for this dependency instead"
+            url="https://developer.android.com/studio/build/migrate-to-ksp"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="84"
+            column="5"
+            startOffset="2338"
+            endLine="84"
+            endColumn="46"
+            endOffset="2379"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.core:core-ktx than 1.12.0 is available: 1.17.0">
+        <fix-replace
+            description="Change to 1.17.0"
+            family="Update versions"
+            oldString="1.12.0"
+            replacement="1.17.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="74"
+            column="21"
+            startOffset="1843"
+            endLine="74"
+            endColumn="50"
+            endOffset="1872"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.7.0 is available: 2.10.0">
+        <fix-replace
+            description="Change to 2.10.0"
+            family="Update versions"
+            oldString="2.7.0"
+            replacement="2.10.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="75"
+            column="21"
+            startOffset="1895"
+            endLine="75"
+            endColumn="67"
+            endOffset="1941"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.7.0 is available: 2.10.0">
+        <fix-replace
+            description="Change to 2.10.0"
+            family="Update versions"
+            oldString="2.7.0"
+            replacement="2.10.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="76"
+            column="21"
+            startOffset="1964"
+            endLine="76"
+            endColumn="73"
+            endOffset="2016"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.activity:activity-compose than 1.8.2 is available: 1.12.2">
+        <fix-replace
+            description="Change to 1.12.2"
+            family="Update versions"
+            oldString="1.8.2"
+            replacement="1.12.2"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="77"
+            column="21"
+            startOffset="2039"
+            endLine="77"
+            endColumn="61"
+            endOffset="2079"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.navigation:navigation-compose than 2.7.6 is available: 2.9.6">
+        <fix-replace
+            description="Change to 2.9.6"
+            family="Update versions"
+            oldString="2.7.6"
+            replacement="2.9.6"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="78"
+            column="21"
+            startOffset="2102"
+            endLine="78"
+            endColumn="65"
+            endOffset="2146"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.appcompat:appcompat than 1.6.1 is available: 1.7.1">
+        <fix-replace
+            description="Change to 1.7.1"
+            family="Update versions"
+            oldString="1.6.1"
+            replacement="1.7.1"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="79"
+            column="21"
+            startOffset="2169"
+            endLine="79"
+            endColumn="55"
+            endOffset="2203"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.room:room-runtime than 2.6.1 is available: 2.8.4">
+        <fix-replace
+            description="Change to 2.8.4"
+            family="Update versions"
+            oldString="2.6.1"
+            replacement="2.8.4"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="82"
+            column="21"
+            startOffset="2248"
+            endLine="82"
+            endColumn="53"
+            endOffset="2280"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.room:room-ktx than 2.6.1 is available: 2.8.4">
+        <fix-replace
+            description="Change to 2.8.4"
+            family="Update versions"
+            oldString="2.6.1"
+            replacement="2.8.4"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="83"
+            column="21"
+            startOffset="2303"
+            endLine="83"
+            endColumn="49"
+            endOffset="2331"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.room:room-compiler than 2.6.1 is available: 2.8.4">
+        <fix-replace
+            description="Change to 2.8.4"
+            family="Update versions"
+            oldString="2.6.1"
+            replacement="2.8.4"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="84"
+            column="11"
+            startOffset="2344"
+            endLine="84"
+            endColumn="44"
+            endOffset="2377"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.0.0 is available: 1.2.0">
+        <fix-replace
+            description="Change to 1.2.0"
+            family="Update versions"
+            oldString="1.0.0"
+            replacement="1.2.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="87"
+            column="21"
+            startOffset="2450"
+            endLine="87"
+            endColumn="67"
+            endOffset="2496"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.documentfile:documentfile than 1.0.1 is available: 1.1.0">
+        <fix-replace
+            description="Change to 1.1.0"
+            family="Update versions"
+            oldString="1.0.1"
+            replacement="1.1.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="96"
+            column="21"
+            startOffset="2780"
+            endLine="96"
+            endColumn="61"
+            endOffset="2820"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.test.ext:junit than 1.1.5 is available: 1.3.0">
+        <fix-replace
+            description="Change to 1.3.0"
+            family="Update versions"
+            oldString="1.1.5"
+            replacement="1.3.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="103"
+            column="32"
+            startOffset="3021"
+            endLine="103"
+            endColumn="61"
+            endOffset="3050"/>
+    </incident>
+
+    <incident
+        id="GradleDependency"
+        severity="warning"
+        message="A newer version of androidx.test.espresso:espresso-core than 3.5.1 is available: 3.7.0">
+        <fix-replace
+            description="Change to 3.7.0"
+            family="Update versions"
+            oldString="3.5.1"
+            replacement="3.7.0"/>
+        <location
+            file="${:app*projectDir}/build.gradle.kts"
+            line="104"
+            column="32"
+            startOffset="3084"
+            endLine="104"
+            endColumn="74"
+            endOffset="3126"/>
+    </incident>
+
+</incidents>

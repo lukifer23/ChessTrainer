@@ -37,6 +37,7 @@ import com.chesstrainer.engine.StockfishEngine
 import com.chesstrainer.engine.UCIParser
 import com.chesstrainer.utils.EngineType
 import com.chesstrainer.utils.Settings
+import com.chesstrainer.engine.AnalysisResult
 import kotlinx.coroutines.launch
 
 private data class AnalysisLine(
@@ -91,10 +92,7 @@ fun AnalysisScreen(onNavigateBack: () -> Unit) {
     var moveHistory by remember { mutableStateOf<List<GameState>>(emptyList()) }
     var historyIndex by remember { mutableStateOf(-1) }
     var showFenDialog by remember { mutableStateOf(false) }
-    var fenInput by remember { mutableStateOf(TextFieldValue()) }
     var userMessage by remember { mutableStateOf<String?>(null) }
-
-    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
     DisposableEffect(Unit) {
         onDispose {
@@ -316,31 +314,32 @@ fun AnalysisScreen(onNavigateBack: () -> Unit) {
             EngineType.LEELA_CHESS_ZERO -> {
                 val result = leelaEngine.getAnalysis(
                     gameState = gameState,
-                    maxNodes = settings.leelaNodes
+                    nodes = settings.leelaNodes.toLong()
                 )
                 result.fold(
-                    onSuccess = { line ->
-                        val moves = if (line.principalVariation.isNotEmpty()) {
-                            line.principalVariation
+                    onSuccess = { lines ->
+                        val line = lines.firstOrNull()
+                        if (line != null) {
+                            val moves = line.principalVariation
+                            AnalysisStatus.Ready(
+                                engineName = leelaEngine.getEngineInfo() ?: "LeelaChess0",
+                                engineType = EngineType.LEELA_CHESS_ZERO,
+                                lines = listOf(
+                                    AnalysisLine(
+                                        index = 1,
+                                        score = line.score,
+                                        depth = line.depth,
+                                        time = line.time,
+                                        nodes = line.nodes,
+                                        moves = moves
+                                    )
+                                ),
+                                fen = gameState.toFen(),
+                                gameStateInfo = gameStateInfo
+                            )
                         } else {
-                            listOf(line.bestMove)
+                            AnalysisStatus.Error("No analysis returned")
                         }
-                        AnalysisStatus.Ready(
-                            engineName = leelaEngine.getEngineInfo() ?: "LeelaChess0",
-                            engineType = EngineType.LEELA_CHESS_ZERO,
-                            lines = listOf(
-                                AnalysisLine(
-                                    index = 1,
-                                    score = line.evaluation,
-                                    depth = 0,
-                                    time = line.time,
-                                    nodes = line.nodes,
-                                    moves = moves
-                                )
-                            ),
-                            fen = gameState.toFen(),
-                            gameStateInfo = gameStateInfo
-                        )
                     },
                     onFailure = { error ->
                         AnalysisStatus.Error(error.message ?: "Leela analysis failed")

@@ -1,282 +1,45 @@
 package com.chesstrainer.engine
 
 import android.content.Context
-import com.chesstrainer.chess.GameState
-import com.chesstrainer.chess.Move
 import com.chesstrainer.utils.Settings
-import kotlinx.coroutines.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import java.io.File
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * LeelaChess0 neural network chess engine implementation using UCI protocol.
  * Provides Leela-specific configuration and search capabilities.
  */
-class LeelaEngine(private val context: Context, private val settings: Settings) : ChessEngine {
+class LeelaEngine(context: Context, settings: Settings) : BaseEngine(context, settings, "LeelaEngine") {
 
-    private var engineManager: EngineManager? = null
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    private var isInitialized = false
-
-    fun getEngineName(): String? = engineManager?.getEngineName()
-
-    override fun getBestMove(
-        gameState: GameState,
-        callback: (Move) -> Unit,
-        onError: (Throwable) -> Unit
-    ) {
-        scope.launch {
-            try {
-                android.util.Log.d("LeelaEngine", "Starting getBestMove")
-                ensureInitialized()
-                android.util.Log.d("LeelaEngine", "Engine initialized successfully")
-
-                val searchParams = EngineManager.SearchParams(
-                    nodes = settings.leelaNodes.takeIf { it > 0 }?.toLong(),
-                    moveTime = 3000L // 3 second default for neural network evaluation
-                )
-
-                engineManager?.startSearch(
-                    gameState = gameState,
-                    onBestMove = { move ->
-                        android.util.Log.d("LeelaEngine", "Best move found: $move")
-                        callback(move)
-                    },
-                    searchParams = searchParams
-                )
-            } catch (e: Exception) {
-                android.util.Log.e("LeelaEngine", "Error in getBestMove", e)
-                onError(e)
-            }
-        }
+    override suspend fun configureEngine() {
+        configureLeela()
     }
 
-    override fun startNewGame() {
-        scope.launch {
-            try {
-                ensureInitialized()
-                engineManager?.cancelActiveSearch()
-                engineManager?.newGame()
-            } catch (e: Exception) {
-                // Log error but don't throw
-            }
-        }
+    override fun createSearchParams(): EngineManager.SearchParams {
+        return EngineManager.SearchParams(
+            nodes = settings.leelaNodes.takeIf { it > 0 }?.toLong(),
+            moveTime = 3000L // 3 second default for neural network evaluation
+        )
     }
 
-    override fun cleanup() {
-        scope.launch {
-            engineManager?.cleanup()
-            engineManager = null
-            isInitialized = false
-            scope.cancel()
-        }
-    }
+    override fun getStartErrorMessage(): String = "Failed to start LeelaChess0 engine"
 
-    /**
-     * Ensure the engine is initialized and ready
-     */
-    suspend fun initialize(onStatusUpdate: (String) -> Unit = {}): Result<Unit> {
-        return runCatching { ensureInitialized(onStatusUpdate) }
-    }
-
-    private suspend fun ensureInitialized(onStatusUpdate: (String) -> Unit = {}) {
-        if (isInitialized && engineManager?.isReady() == true) {
-            return
-        }
-
-        try {
-            engineManager = EngineManager(context, settings)
-
-            // Start the engine
-            engineManager?.startEngine(onStatusUpdate)?.getOrElse { error ->
-                throw Exception("Failed to start LeelaChess0 engine: ${error.message}")
-            }
-
-            // Configure Leela-specific options
-            configureLeela()
-
-            isInitialized = true
-        } catch (e: Exception) {
-            isInitialized = false
-            throw Exception("Failed to initialize LeelaChess0 engine: ${e.message}", e)
-        }
-    }
-
-    /**
-     * Configure LeelaChess0-specific options
-     */
     private suspend fun configureLeela() {
-        val configureResult = engineManager?.configureEngine()
-
-        // Leela-specific configuration
-        val customWeights = settings.customLc0WeightsPath
-        val defaultWeights = engineManager?.getLc0WeightsFile()?.absolutePath
-        val weightsPath = if (!customWeights.isNullOrBlank() && java.io.File(customWeights).exists()) {
-             customWeights
-        } else {
-             defaultWeights
-        }
-        val availableThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-        val lc0Threads = settings.lc0Threads.coerceIn(1, availableThreads)
-        val backendSetting = settings.lc0Backend.trim().ifEmpty { "cpu" }
-        val options = mutableListOf<Pair<String, Any>>("NNCacheSize" to 200000) // Neural network cache size
-
-        if (configureResult?.isFailure == true) {
-            options.add("MaxNodes" to (settings.leelaNodes.takeIf { it > 0 } ?: 1000))
-            options.add("Threads" to lc0Threads)
-            options.add("Backend" to backendSetting)
-            if (!weightsPath.isNullOrBlank()) {
-                options.add("WeightsFile" to weightsPath)
+        val opts = mutableMapOf<String, String>()
+        opts["Threads"] = settings.lc0Threads.toString()
+        opts["Backend"] = settings.lc0Backend
+        
+        settings.customLc0WeightsPath?.let { path ->
+            if (path.isNotEmpty()) {
+                opts["WeightsFile"] = path
             }
-        } else if (settings.lc0Backend.isBlank()) {
-            options.add("Backend" to backendSetting)
         }
-
-        for ((option, value) in options) {
+        
+        // Apply settings
+        opts.forEach { (key, value) ->
             try {
-                engineManager?.setOption(option, value)
+                engineManager?.setOption(key, value)
             } catch (e: Exception) {
-                // Some options might not be supported or available
+                android.util.Log.w("LeelaEngine", "Failed to set option $key", e)
             }
         }
-    }
-
-    /**
-     * Get detailed analysis for a position using neural network evaluation
-     */
-    suspend fun getAnalysis(
-        gameState: GameState,
-        maxNodes: Int = settings.leelaNodes
-    ): Result<AnalysisResult> = suspendCoroutine { continuation ->
-        scope.launch {
-            try {
-                ensureInitialized()
-
-                var bestMove: Move? = null
-                var evaluation: UCIParser.Score? = null
-                var time = 0L
-                var nodes = 0L
-                var principalVariation = emptyList<Move>()
-
-                val searchParams = EngineManager.SearchParams(
-                    nodes = maxNodes.toLong(),
-                    infinite = false
-                )
-
-                engineManager?.startSearch(
-                    gameState = gameState,
-                    onBestMove = { move ->
-                        bestMove = move
-                        val result = AnalysisResult(
-                            bestMove = move,
-                            evaluation = evaluation,
-                            principalVariation = principalVariation,
-                            time = time,
-                            nodes = nodes,
-                            maxNodes = maxNodes
-                        )
-                        continuation.resume(Result.success(result))
-                    },
-                    onInfo = { info ->
-                        evaluation = info.score
-                        time = info.time ?: 0
-                        nodes = info.nodes ?: 0
-                        if (info.principalVariation.isNotEmpty()) {
-                            principalVariation = info.principalVariation
-                        }
-                    },
-                    searchParams = searchParams
-                )
-
-            } catch (e: Exception) {
-                continuation.resumeWithException(e)
-            }
-        }
-    }
-
-    /**
-     * Evaluate a position using neural network
-     */
-    suspend fun evaluatePosition(gameState: GameState, maxNodes: Int = 1000): Result<PositionEvaluation> = suspendCoroutine { continuation ->
-        scope.launch {
-            try {
-                ensureInitialized()
-
-                var evaluation: UCIParser.Score? = null
-                var time = 0L
-                var nodes = 0L
-
-                // Set position
-                engineManager?.setPosition(gameState)
-
-                // Start evaluation
-                val searchParams = EngineManager.SearchParams(
-                    nodes = maxNodes.toLong(),
-                    moveTime = 1000 // 1 second for evaluation
-                )
-
-                engineManager?.startSearch(
-                    gameState = gameState,
-                    onBestMove = { _ ->
-                        // Evaluation complete
-                        val result = PositionEvaluation(
-                            score = evaluation,
-                            time = time,
-                            nodes = nodes,
-                            maxNodes = maxNodes
-                        )
-                        continuation.resume(Result.success(result))
-                    },
-                    onInfo = { info ->
-                        evaluation = info.score
-                        time = info.time ?: 0
-                        nodes = info.nodes ?: 0
-                    },
-                    searchParams = searchParams
-                )
-
-            } catch (e: Exception) {
-                continuation.resumeWithException(e)
-            }
-        }
-    }
-
-    /**
-     * Analysis result for a position
-     */
-    data class AnalysisResult(
-        val bestMove: Move,
-        val evaluation: UCIParser.Score?,
-        val principalVariation: List<Move>,
-        val time: Long,
-        val nodes: Long,
-        val maxNodes: Int
-    )
-
-    /**
-     * Position evaluation result
-     */
-    data class PositionEvaluation(
-        val score: UCIParser.Score?,
-        val time: Long,
-        val nodes: Long,
-        val maxNodes: Int
-    )
-
-    /**
-     * Get engine information
-     */
-    fun getEngineInfo(): String {
-        return engineManager?.getEngineName() ?: "LeelaChess0"
-    }
-
-    /**
-     * Check if engine is ready
-     */
-    fun isReady(): Boolean {
-        return isInitialized && engineManager?.isReady() == true
     }
 }

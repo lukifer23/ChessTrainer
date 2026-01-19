@@ -106,29 +106,14 @@ class EngineInstaller(private val context: Context) {
             }
 
             baseDir.mkdirs()
-            val abi = findSupportedAbi(engineType)
-                ?: return@withContext Result.failure(
-                    Exception(unsupportedAbiMessage(engineType) ?: "No supported ABI download available.")
-                )
-            val engineSpec = engineBinarySpec(engineType, abi)
-                ?: return@withContext Result.failure(Exception("No download spec configured for $engineType/$abi."))
-            val engineBinary = resolveEngineBinary(engineType, abi)
+            // Base dir still needed for weights
+            baseDir.mkdirs()
 
-            if (!engineBinary.exists() || !engineBinary.canExecute() || !isExecutableBinary(engineBinary)) {
-                onStatusUpdate("Downloading ${engineSpec.label}...")
-                downloadAndVerify(engineSpec, engineBinary, onStatusUpdate)
-                ensureExecutable(engineBinary)
-
-                if (!isExecutableBinary(engineBinary)) {
-                     // Check one last time if it's executable via file system
-                     if (!engineBinary.canExecute()) {
-                        return@withContext Result.failure(Exception("Downloaded engine binary is not executable (chmod failed)."))
-                     }
-                }
-            } else {
-                // Ensure executable permissions even for existing files
-                ensureExecutable(engineBinary)
-            }
+            // Bundled engines don't need installation or permission fixes.
+            // We just return a placeholder for the binary file object since EngineManager handles path resolution.
+            // But we DO need to handle weights for Leela.
+            
+            val placeholderBinary = File("/dev/null") 
 
             val weightsFile = if (engineType == EngineType.LEELA_CHESS_ZERO) {
                 val weightsSpec = lc0WeightsSpec()
@@ -143,7 +128,7 @@ class EngineInstaller(private val context: Context) {
                 null
             }
 
-            Result.success(InstalledAssets(engineBinary, weightsFile))
+            Result.success(InstalledAssets(placeholderBinary, weightsFile))
         } catch (e: Exception) {
             Result.failure(Exception("Engine install failed: ${e.message}", e))
         }
@@ -153,12 +138,14 @@ class EngineInstaller(private val context: Context) {
         try {
             android.util.Log.d("EngineInstaller", "Attempting to make executable: ${file.absolutePath}")
             
-            // 1. Java API - Try to set executable for all users (owner only = false)
-            val javaResult = file.setExecutable(true, false)
-            android.util.Log.d("EngineInstaller", "Java setExecutable(true, false) returned: $javaResult")
+            // 1. Java API - Try to set executable for owner only (more restrictive, often preferred by Android)
+            val javaResult = file.setExecutable(true, true)
+            android.util.Log.d("EngineInstaller", "Java setExecutable(true, true) returned: $javaResult")
 
-            // 2. Shell chmod 755 - Essential for many Android devices where Java API might report false negative or fail
-            val process = ProcessBuilder("chmod", "755", file.absolutePath)
+            // 2. Shell chmod 500 - Read/Execute ONLY (r-x------)
+            // Android W^X security often prevents executing writable files.
+            // We must remove write permission to allow execution.
+            val process = ProcessBuilder("/system/bin/chmod", "500", file.absolutePath)
                 .redirectErrorStream(true)
                 .start()
             
@@ -166,16 +153,19 @@ class EngineInstaller(private val context: Context) {
             val exitCode = process.waitFor()
             
             if (exitCode == 0) {
-                android.util.Log.d("EngineInstaller", "chmod 755 success")
+                android.util.Log.d("EngineInstaller", "chmod 500 success (W^X compliance)")
             } else {
-                android.util.Log.e("EngineInstaller", "chmod 755 failed (exit $exitCode): $output")
+                android.util.Log.e("EngineInstaller", "chmod 500 failed (exit $exitCode): $output")
+                // Fallback to 755 only if 500 fails
+                val fallback = ProcessBuilder("/system/bin/chmod", "755", file.absolutePath)
+                    .redirectErrorStream(true)
+                    .start()
+                fallback.waitFor()
             }
             
             // 3. Verification
             if (!file.canExecute()) {
                  android.util.Log.w("EngineInstaller", "File still reports !canExecute() after attempts.")
-                 // Last ditch attempt: simplify to owner-only executable
-                 file.setExecutable(true, true)
             }
         } catch (e: Exception) {
             android.util.Log.e("EngineInstaller", "Failed to set executable permissions", e)

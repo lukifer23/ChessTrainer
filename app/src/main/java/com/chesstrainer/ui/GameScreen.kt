@@ -14,6 +14,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import com.chesstrainer.ui.components.ModernButton
+import com.chesstrainer.ui.components.ModernCard
+import com.chesstrainer.ui.components.ModernDialog
+import com.chesstrainer.ui.theme.AccentBlue
+import com.chesstrainer.ui.theme.AccentTeal
+import com.chesstrainer.ui.theme.AccentViola
 import com.chesstrainer.chess.*
 import com.chesstrainer.data.GameEntity
 import com.chesstrainer.data.GameRepository
@@ -264,8 +270,8 @@ fun GameScreen(
             gameOverMessage = when (gameState.gameResult) {
                 GameResult.WHITE_WINS -> "White wins!"
                 GameResult.BLACK_WINS -> "Black wins!"
-                GameResult.DRAW -> "Draw!"
-                else -> "Game over"
+                GameResult.DRAW -> context.getString(com.chesstrainer.R.string.draw)
+                else -> context.getString(com.chesstrainer.R.string.game_over)
             }
             showGameOverDialog = true
             if (!hasRecordedGame) {
@@ -522,73 +528,69 @@ fun GameScreen(
 
     if (!gameStarted) {
         // Game setup screen
+        // Game setup screen
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "🎯 Chess Game Setup",
-                style = MaterialTheme.typography.h4
+                style = MaterialTheme.typography.h4,
+                color = MaterialTheme.colors.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Text(
+                text = "Choose your game mode:",
+                style = MaterialTheme.typography.h6,
+                color = MaterialTheme.colors.onBackground.copy(alpha = 0.8f)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text("Choose your game mode:", style = MaterialTheme.typography.h6)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    handleEngineRequiredStart(GameMode.HUMAN_VS_ENGINE)
-                },
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text("🎮 Human vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
-            }
+            // Human vs Engine
+            ModernButton(
+                text = "🎮 Human vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}",
+                onClick = { handleEngineRequiredStart(GameMode.HUMAN_VS_ENGINE) },
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = AccentBlue
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
-                onClick = {
-                    handleEngineRequiredStart(GameMode.ENGINE_VS_ENGINE)
-                },
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text("🤖 ${settings.engineType.name.lowercase().replace("_", " ").capitalize()} vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
-            }
+            // Engine vs Engine
+            ModernButton(
+                text = "🤖 Engine vs Engine",
+                onClick = { handleEngineRequiredStart(GameMode.ENGINE_VS_ENGINE) },
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = AccentViola
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
-                onClick = {
-                    startGameWithMode(GameMode.FREE_PLAY)
-                },
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text("👥 Free Play (Two Players)")
-            }
+            // Free Play
+            ModernButton(
+                text = "👥 Free Play (Two Players)",
+                onClick = { startGameWithMode(GameMode.FREE_PLAY) },
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = AccentTeal
+            )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(64.dp))
 
+            // Bottom Navigation
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                OutlinedButton(onClick = onNavigateToSettings) {
-                    Text("Settings")
-                }
-                OutlinedButton(onClick = onNavigateToAnalysis) {
-                    Text("Analysis")
-                }
-                OutlinedButton(onClick = onNavigateToLessons) {
-                    Text("Learn")
-                }
-                OutlinedButton(onClick = onNavigateToScorecard) {
-                    Text("Scorecard")
-                }
+                TextButton(onClick = onNavigateToSettings) { Text("Settings") }
+                TextButton(onClick = onNavigateToAnalysis) { Text("Analysis") }
+                TextButton(onClick = onNavigateToLessons) { Text("Learn") }
+                TextButton(onClick = onNavigateToScorecard) { Text("Scorecard") }
             }
         }
     } else if (showBoard) {
@@ -604,16 +606,15 @@ fun GameScreen(
                     .background(MaterialTheme.colors.background)
             ) {
                 // Top status bar
-                Card(
+                ModernCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                    elevation = 4.dp
+                    backgroundColor = MaterialTheme.colors.surface
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -623,10 +624,11 @@ fun GameScreen(
                                 text = when (gameMode) {
                                     GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
                                     GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
-                                    GameMode.FREE_PLAY -> "Free Play"
+                                    GameMode.FREE_PLAY -> "Detailed Free Play"
                                 },
                                 style = MaterialTheme.typography.subtitle1,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colors.onSurface
                             )
                             Text(
                                 text = when (currentEngine) {
@@ -641,27 +643,17 @@ fun GameScreen(
 
                         // Action buttons
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            IconButton(
-                                onClick = { undoMove() },
-                                modifier = Modifier.size(36.dp),
-                                enabled = gameState.moveHistory.isNotEmpty() && !gameState.isGameOver()
-                            ) {
-                                Text("↶", fontSize = 18.sp)
+                            IconButton(onClick = { undoMove() }, enabled = gameState.moveHistory.isNotEmpty() && !gameState.isGameOver()) {
+                                Text("↶", fontSize = 20.sp)
                             }
-                            IconButton(onClick = { exportPgn() }, modifier = Modifier.size(36.dp)) {
-                                Text("📄", fontSize = 18.sp)
+                            IconButton(onClick = { exportPgn() }) {
+                                Text("📄", fontSize = 20.sp)
                             }
-                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
-                                Text("⚙", fontSize = 18.sp)
+                            IconButton(onClick = onNavigateToSettings) {
+                                Text("⚙", fontSize = 20.sp)
                             }
-                            IconButton(onClick = onNavigateToAnalysis, modifier = Modifier.size(36.dp)) {
-                                Text("📊", fontSize = 18.sp)
-                            }
-                            IconButton(onClick = onNavigateToLessons, modifier = Modifier.size(36.dp)) {
-                                Text("📚", fontSize = 18.sp)
-                            }
-                            IconButton(onClick = onNavigateToScorecard, modifier = Modifier.size(36.dp)) {
-                                Text("🏆", fontSize = 18.sp)
+                            IconButton(onClick = onNavigateToAnalysis) {
+                                Text("📊", fontSize = 20.sp)
                             }
                         }
                     }
@@ -692,38 +684,38 @@ fun GameScreen(
                 }
 
                 // Game status and controls
-                Card(
+                ModernCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                    elevation = 4.dp
+                    backgroundColor = MaterialTheme.colors.surface
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Current player indicator and status
+                            // Current player indicator and status
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
+                                val statusText = when {
+                                    gameState.isGameOver() -> gameOverMessage
+                                    gameState.currentPlayer == Color.WHITE -> androidx.compose.ui.res.stringResource(com.chesstrainer.R.string.white_to_move)
+                                    else -> androidx.compose.ui.res.stringResource(com.chesstrainer.R.string.black_to_move)
+                                }
                                 Text(
-                                    text = when {
-                                        gameState.isGameOver() -> gameOverMessage
-                                        gameState.currentPlayer == Color.WHITE -> "⚪ White to move"
-                                        else -> "⚫ Black to move"
-                                    },
+                                    text = statusText,
                                     style = MaterialTheme.typography.h6,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (gameState.isGameOver()) AccentViola else MaterialTheme.colors.onSurface
                                 )
 
                                 if (try { MoveValidator.isKingInCheck(gameState.board, gameState.currentPlayer) } catch (e: Exception) { false }) {
                                     Text(
-                                        text = "🔴 Check!",
-                                        color = androidx.compose.ui.graphics.Color.Red,
+                                        text = androidx.compose.ui.res.stringResource(com.chesstrainer.R.string.check),
+                                        color = MaterialTheme.colors.error,
                                         style = MaterialTheme.typography.body2,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -744,14 +736,15 @@ fun GameScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Game control buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Button(
+                            ModernButton(
+                                text = "🔄 New Game",
                                 onClick = {
                                     gameState = GameState()
                                     selectedSquare = null
@@ -765,10 +758,9 @@ fun GameScreen(
                                         engineInitAttempt += 1
                                     }
                                 },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("🔄 New Game")
-                            }
+                                modifier = Modifier.weight(1f),
+                                backgroundColor = AccentBlue
+                            )
 
                             OutlinedButton(
                                 onClick = {
@@ -779,7 +771,7 @@ fun GameScreen(
                                     engineStartupError = null
                                     engineStartupStatus = null
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).height(56.dp)
                             ) {
                                 Text("⬅️ Back")
                             }

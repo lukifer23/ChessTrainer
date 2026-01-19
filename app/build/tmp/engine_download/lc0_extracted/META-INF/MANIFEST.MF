@@ -1,0 +1,37 @@
+Manifest-Version: 1.0
+Built-By: Generated-by-ADT
+Created-By: Android Gradle 3.5.0
+
+Name: AndroidManifest.xml
+SHA1-Digest: 9+WoFZtUePlyIxpwRfJdeXs/2E4=
+
+Name: classes.dex
+SHA1-Digest: VEEk626QXff08hWxHyd3ruwHncw=
+
+Name: lib/arm64-v8a/liblc0.so
+SHA1-Digest: XD9Qd7U/pM21iA1THaeJKI+MoW0=
+
+Name: lib/armeabi-v7a/liblc0.so
+SHA1-Digest: W/Cjlu0TJd/Aa2OJOtKFpsv5XQ8=
+
+Name: res/drawable-hdpi-v4/ic_launcher.png
+SHA1-Digest: mW5eEZpx7DT0XyPKDBgBekSfxUU=
+
+Name: res/drawable-ldpi-v4/ic_launcher.png
+SHA1-Digest: vX9DO7syqMirBMs2AJRQID+KcJI=
+
+Name: res/drawable-mdpi-v4/ic_launcher.png
+SHA1-Digest: 6C5qsX70Z9w7mhLpbs6pFsXppU8=
+
+Name: res/drawable-xhdpi-v4/ic_launcher.png
+SHA1-Digest: 3tk1Z11YK6LvBYWmwKMYKvvBwb4=
+
+Name: res/drawable-xxhdpi-v4/ic_launcher.png
+SHA1-Digest: uNYSJxe/Ew+Q/Pl/DQNee/jxnK8=
+
+Name: res/xml/enginelist.xml
+SHA1-Digest: L/s4+2SbiMfW1z3NJTezLRxAtZU=
+
+Name: resources.arsc
+SHA1-Digest: NOT4tYHyNNmvdTtxaAeHLlf8dGE=
+

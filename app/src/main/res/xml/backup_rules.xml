@@ -3,6 +3,9 @@
     <!-- Include settings and game data -->
     <include domain="sharedpref" path="."/>
     <include domain="database" path="."/>
-    <!-- Exclude engine binaries as they're large -->
-    <exclude domain="external" path="engines/"/>
+    <!-- Exclude engine binaries as they're not included by default configuration above, but to be explicit and safe we can leave it if we had a wide include. 
+         However, since we only include sharedpref and database, this exclude is technically redundant for the current config. 
+         BUT if I wanted to be redundant, I should use the correct domain. 
+         The error says "engines/ is not in an included path". 
+         So the correct fix is to DELETE the exclude line because it is strictly unnecessary given the whitelisting above. -->
 </full-backup-content>

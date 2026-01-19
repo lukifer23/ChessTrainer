@@ -1,0 +1,372 @@
+/Users/admin/.gradle/caches/transforms-3/3fbb01222c6bcf399e9d5629d825a319/transformed/runtime-release/jars/lint.jar: Warning: Library lint checks reference invalid APIs; these checks will be skipped!
+
+Lint found an issue registry (androidx.compose.runtime.lint.RuntimeIssueRegistry)
+which contains some references to invalid API:
+org.jetbrains.kotlin.analysis.api.session.KtAnalysisSessionProvider: org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeTokenFactory getTokenFactory()
+(Referenced from androidx/compose/runtime/lint/AutoboxingStateCreationDetector.class)
+
+Therefore, this lint check library is not included
+in analysis. This affects the following lint checks:
+AutoboxingStateValueProperty
+AutoboxingStateCreation
+CoroutineCreationDuringComposition
+FlowOperatorInvokedInComposition
+ComposableLambdaParameterNaming
+ComposableLambdaParameterPosition
+ComposableNaming
+StateFlowValueCalledInComposition
+CompositionLocalNaming
+MutableCollectionMutableState
+ProduceStateDoesNotAssignValue
+RememberReturnType
+OpaqueUnitKey
+UnrememberedMutableState
+
+To use this lint check, upgrade to a more recent version
+of the library. [ObsoleteLintCustomCheck]
+
+   Explanation for issues of type "ObsoleteLintCustomCheck":
+   Lint can be extended with "custom checks": additional checks implemented by
+   developers and libraries to for example enforce specific API usages
+   required by a library or a company coding style guideline.
+
+   The Lint APIs are not yet stable, so these checks may either cause a
+   performance degradation, or stop working, or provide wrong results.
+
+   This warning flags custom lint checks that are found to be using obsolete
+   APIs and will need to be updated to run in the current lint environment.
+
+   It may also flag issues found to be using a newer version of the API,
+   meaning that you need to use a newer version of lint (or Android Studio or
+   Gradle plugin etc) to work with these checks.
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:7: Warning: WRITE_EXTERNAL_STORAGE is deprecated (and is not granted) when targeting Android 13+. If you need to write to shared storage, use the MediaStore.createWriteRequest intent. [ScopedStorage]
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:8: Warning: READ_EXTERNAL_STORAGE is deprecated (and is not granted) when targeting Android 13+. If you need to query or interact with MediaStore or media files on the shared storage, you should instead use one or more new storage permissions: READ_MEDIA_IMAGES, READ_MEDIA_VIDEO or READ_MEDIA_AUDIO. [ScopedStorage]
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ScopedStorage":
+   Scoped storage is enforced on Android 10+ (or Android 11+ if using
+   requestLegacyExternalStorage). In particular, WRITE_EXTERNAL_STORAGE will
+   no longer provide write access to all files; it will provide the equivalent
+   of READ_EXTERNAL_STORAGE instead.
+
+   As of Android 13, if you need to query or interact with MediaStore or media
+   files on the shared storage, you should be using instead one or more new
+   storage permissions:
+   * android.permission.READ_MEDIA_IMAGES
+   * android.permission.READ_MEDIA_VIDEO
+   * android.permission.READ_MEDIA_AUDIO
+
+   and then add maxSdkVersion="33" to the older permission. See the developer
+   guide for how to do this:
+   https://developer.android.com/about/versions/13/behavior-changes-13#granula
+   r-media-permissions
+
+   The MANAGE_EXTERNAL_STORAGE permission can be used to manage all files, but
+   it is rarely necessary and most apps on Google Play are not allowed to use
+   it. Most apps should instead migrate to use scoped storage. To modify or
+   delete files, apps should request write access from the user as described
+   at https://goo.gle/android-mediastore-createwriterequest.
+
+   To learn more, read these resources: Play policy:
+   https://goo.gle/policy-storage-help Allowable use cases:
+   https://goo.gle/policy-storage-usecases
+
+   https://goo.gle/android-storage-usecases
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:184: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                GameMode.HUMAN_VS_ENGINE -> "Human" to currentEngine.name.lowercase().replace("_", " ").capitalize()
+                                                                                                        ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:185: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                GameMode.ENGINE_VS_ENGINE -> currentEngine.name.lowercase().replace("_", " ").capitalize() to
+                                                                                              ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:186: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                    currentEngine.name.lowercase().replace("_", " ").capitalize()
+                                                                     ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:549: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                Text("🎮 Human vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
+                                                                                           ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:560: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                Text("🤖 ${settings.engineType.name.lowercase().replace("_", " ").capitalize()} vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
+                                                                                  ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:560: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                Text("🤖 ${settings.engineType.name.lowercase().replace("_", " ").capitalize()} vs ${settings.engineType.name.lowercase().replace("_", " ").capitalize()}")
+                                                                                                                                                            ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:624: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                                    GameMode.HUMAN_VS_ENGINE -> "Human vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                                                                                                             ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:625: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                                    GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                                                                                                     ~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/GameScreen.kt:625: Warning: Implicitly using the default locale is a common source of bugs: Use capitalize(Locale) instead. For strings meant to be internal use Locale.ROOT, otherwise Locale.getDefault(). [DefaultLocale]
+                                    GameMode.ENGINE_VS_ENGINE -> "${currentEngine.name.lowercase().replace("_", " ").capitalize()} vs ${currentEngine.name.lowercase().replace("_", " ").capitalize()}"
+                                                                                                                                                                                         ~~~~~~~~~~
+
+   Explanation for issues of type "DefaultLocale":
+   Calling String#toLowerCase() or #toUpperCase() without specifying an
+   explicit locale is a common source of bugs. The reason for that is that
+   those methods will use the current locale on the user's device, and even
+   though the code appears to work correctly when you are developing the app,
+   it will fail in some locales. For example, in the Turkish locale, the
+   uppercase replacement for i is not I.
+
+   If you want the methods to just perform ASCII replacement, for example to
+   convert an enum name, call String#toUpperCase(Locale.US) instead. If you
+   really want to use the current locale, call
+   String#toUpperCase(Locale.getDefault()) instead.
+
+   https://developer.android.com/reference/java/util/Locale.html#default_locale
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:14: Warning: Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details. [OldTargetApi]
+        targetSdk = 34
+        ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "OldTargetApi":
+   When your application runs on a version of Android that is more recent than
+   your targetSdkVersion specifies that it has been tested with, various
+   compatibility modes kick in. This ensures that your application continues
+   to work, but it may look out of place. For example, if the targetSdkVersion
+   is less than 14, your app may get an option button in the UI.
+
+   To fix this issue, set the targetSdkVersion to the highest available value.
+   Then test your app to make sure everything works correctly. You may want to
+   consult the compatibility notes to see what changes apply to each version
+   you are adding support for:
+   https://developer.android.com/reference/android/os/Build.VERSION_CODES.html
+   as well as follow this guide:
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.
+   html
+
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.html
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/xml/data_extraction_rules.xml:8: Error: engines/ is not in an included path [FullBackupContent]
+        <exclude domain="external" path="engines/"/>
+                                         ~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/xml/data_extraction_rules.xml:15: Error: engines/ is not in an included path [FullBackupContent]
+        <exclude domain="external" path="engines/"/>
+                                         ~~~~~~~~
+
+   Explanation for issues of type "FullBackupContent":
+   Ensures that <data-extraction-rules> and <full-backup-content> files, which
+   configure backup options, are valid.
+
+   https://android-developers.googleblog.com/2015/07/auto-backup-for-apps-made-simple.html
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:74: Warning: A newer version of androidx.core:core-ktx than 1.12.0 is available: 1.17.0 [GradleDependency]
+    implementation("androidx.core:core-ktx:1.12.0")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:75: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.7.0 is available: 2.10.0 [GradleDependency]
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:76: Warning: A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.7.0 is available: 2.10.0 [GradleDependency]
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:77: Warning: A newer version of androidx.activity:activity-compose than 1.8.2 is available: 1.12.2 [GradleDependency]
+    implementation("androidx.activity:activity-compose:1.8.2")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:78: Warning: A newer version of androidx.navigation:navigation-compose than 2.7.6 is available: 2.9.6 [GradleDependency]
+    implementation("androidx.navigation:navigation-compose:2.7.6")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:79: Warning: A newer version of androidx.appcompat:appcompat than 1.6.1 is available: 1.7.1 [GradleDependency]
+    implementation("androidx.appcompat:appcompat:1.6.1")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:82: Warning: A newer version of androidx.room:room-runtime than 2.6.1 is available: 2.8.4 [GradleDependency]
+    implementation("androidx.room:room-runtime:2.6.1")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:83: Warning: A newer version of androidx.room:room-ktx than 2.6.1 is available: 2.8.4 [GradleDependency]
+    implementation("androidx.room:room-ktx:2.6.1")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:84: Warning: A newer version of androidx.room:room-compiler than 2.6.1 is available: 2.8.4 [GradleDependency]
+    kapt("androidx.room:room-compiler:2.6.1")
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:87: Warning: A newer version of androidx.datastore:datastore-preferences than 1.0.0 is available: 1.2.0 [GradleDependency]
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:96: Warning: A newer version of androidx.documentfile:documentfile than 1.0.1 is available: 1.1.0 [GradleDependency]
+    implementation("androidx.documentfile:documentfile:1.0.1")
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:103: Warning: A newer version of androidx.test.ext:junit than 1.1.5 is available: 1.3.0 [GradleDependency]
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:104: Warning: A newer version of androidx.test.espresso:espresso-core than 3.5.1 is available: 3.7.0 [GradleDependency]
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/java/com/chesstrainer/ui/ChessBoard.kt:83: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier
+    ~~~~~~~~
+
+   Explanation for issues of type "ModifierParameter":
+   The first (or only) Modifier parameter in a Composable function should
+   follow the following rules:
+   - Be named modifier
+   - Have a type of Modifier
+   - Either have no default value, or have a default value of Modifier
+   - If optional, be the first optional parameter in the parameter list
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/themes.xml:8: Warning: Unnecessary; SDK_INT is always >= 23 [ObsoleteSdkInt]
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+                                                  ~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ObsoleteSdkInt":
+   This check flags version checks that are not necessary, because the
+   minSdkVersion (or surrounding known API level) is already at least as high
+   as the version checked for.
+
+   Similarly, it also looks for resources in -vNN folders, such as values-v14
+   where the version qualifier is less than or equal to the minSdkVersion,
+   where the contents should be merged into the best folder.
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/build.gradle.kts:84: Warning: This library supports using KSP instead of kapt, which greatly improves performance. Learn more: https://developer.android.com/studio/build/migrate-to-ksp [KaptUsageInsteadOfKsp]
+    kapt("androidx.room:room-compiler:2.6.1")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "KaptUsageInsteadOfKsp":
+   KSP is a more efficient replacement for kapt. For libraries that support
+   both, KSP should be used to improve build times.
+
+   https://developer.android.com/studio/build/migrate-to-ksp
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:4: Warning: The resource R.string.new_game appears to be unused [UnusedResources]
+    <string name="new_game">New Game</string>
+            ~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:5: Warning: The resource R.string.settings appears to be unused [UnusedResources]
+    <string name="settings">Settings</string>
+            ~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:6: Warning: The resource R.string.analysis appears to be unused [UnusedResources]
+    <string name="analysis">Analysis</string>
+            ~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:7: Warning: The resource R.string.lessons appears to be unused [UnusedResources]
+    <string name="lessons">Lessons</string>
+            ~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:8: Warning: The resource R.string.export_game appears to be unused [UnusedResources]
+    <string name="export_game">Export Game</string>
+            ~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:9: Warning: The resource R.string.undo_move appears to be unused [UnusedResources]
+    <string name="undo_move">Undo Move</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:10: Warning: The resource R.string.flip_board appears to be unused [UnusedResources]
+    <string name="flip_board">Flip Board</string>
+            ~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:11: Warning: The resource R.string.white_to_move appears to be unused [UnusedResources]
+    <string name="white_to_move">White to move</string>
+            ~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:12: Warning: The resource R.string.black_to_move appears to be unused [UnusedResources]
+    <string name="black_to_move">Black to move</string>
+            ~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:13: Warning: The resource R.string.check appears to be unused [UnusedResources]
+    <string name="check">Check!</string>
+            ~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:14: Warning: The resource R.string.checkmate appears to be unused [UnusedResources]
+    <string name="checkmate">Checkmate!</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:15: Warning: The resource R.string.stalemate appears to be unused [UnusedResources]
+    <string name="stalemate">Stalemate!</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:16: Warning: The resource R.string.draw appears to be unused [UnusedResources]
+    <string name="draw">Draw!</string>
+            ~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:17: Warning: The resource R.string.game_over appears to be unused [UnusedResources]
+    <string name="game_over">Game Over</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:18: Warning: The resource R.string.resign appears to be unused [UnusedResources]
+    <string name="resign">Resign</string>
+            ~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:19: Warning: The resource R.string.offer_draw appears to be unused [UnusedResources]
+    <string name="offer_draw">Offer Draw</string>
+            ~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:20: Warning: The resource R.string.accept_draw appears to be unused [UnusedResources]
+    <string name="accept_draw">Accept Draw</string>
+            ~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:21: Warning: The resource R.string.decline_draw appears to be unused [UnusedResources]
+    <string name="decline_draw">Decline Draw</string>
+            ~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:22: Warning: The resource R.string.leelachess_zero appears to be unused [UnusedResources]
+    <string name="leelachess_zero">LeelaChess Zero</string>
+            ~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:23: Warning: The resource R.string.stockfish appears to be unused [UnusedResources]
+    <string name="stockfish">Stockfish</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:24: Warning: The resource R.string.human_vs_engine appears to be unused [UnusedResources]
+    <string name="human_vs_engine">Human vs Engine</string>
+            ~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:25: Warning: The resource R.string.engine_vs_engine appears to be unused [UnusedResources]
+    <string name="engine_vs_engine">Engine vs Engine</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:26: Warning: The resource R.string.free_play appears to be unused [UnusedResources]
+    <string name="free_play">Free Play</string>
+            ~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:27: Warning: The resource R.string.difficulty appears to be unused [UnusedResources]
+    <string name="difficulty">Difficulty</string>
+            ~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:28: Warning: The resource R.string.nodes appears to be unused [UnusedResources]
+    <string name="nodes">Nodes</string>
+            ~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:29: Warning: The resource R.string.search_time appears to be unused [UnusedResources]
+    <string name="search_time">Search Time</string>
+            ~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:30: Warning: The resource R.string.seconds appears to be unused [UnusedResources]
+    <string name="seconds">seconds</string>
+            ~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:31: Warning: The resource R.string.depth appears to be unused [UnusedResources]
+    <string name="depth">Depth</string>
+            ~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:32: Warning: The resource R.string.plies appears to be unused [UnusedResources]
+    <string name="plies">plies</string>
+            ~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:53: Warning: Replace "-" with an "en dash" character (–, &#8211;) ? [TypographyDashes]
+    <string name="nodes_desc">Higher values = stronger play but slower moves (100-10000)</string>
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/res/values/strings.xml:66: Warning: Replace "-" with an "en dash" character (–, &#8211;) ? [TypographyDashes]
+    <string name="depth_desc">Higher values = stronger play but slower moves (10-25)</string>
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "TypographyDashes":
+   The "n dash" (u2013, &#8211;) and the "m dash" (u2014, &#8212;) characters
+   are used for ranges (n dash) and breaks (m dash). Using these instead of
+   plain hyphens can make text easier to read and your application will look
+   more polished.
+
+   https://en.wikipedia.org/wiki/Dash
+
+/Users/admin/Downloads/VSCode/ChessTrainer/app/src/main/AndroidManifest.xml:10: Warning: Should explicitly set android:icon, there is no default [MissingApplicationIcon]
+    <application
+     ~~~~~~~~~~~
+
+   Explanation for issues of type "MissingApplicationIcon":
+   You should set an icon for the application as whole because there is no
+   default. This attribute must be set as a reference to a drawable resource
+   containing the image (for example @drawable/icon).
+
+   https://developer.android.com/studio/publish/preparing#publishing-configure
+
+2 errors, 61 warnings

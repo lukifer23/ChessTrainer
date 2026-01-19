@@ -30,4 +30,60 @@
     <string name="seconds">seconds</string>
     <string name="depth">Depth</string>
     <string name="plies">plies</string>
+
+    <!-- Settings Strings -->
+    <string name="settings_title">Settings</string>
+    <string name="back">Back</string>
+    <string name="chess_engine">Chess Engine</string>
+    <string name="choose_engine_desc">Choose which chess engine to use for analysis and gameplay</string>
+    
+    <string name="lc0_title">LeelaChess0 (Neural Network)</string>
+    <string name="lc0_desc">Uses deep learning for position evaluation. Best for strategic play.</string>
+    
+    <string name="stockfish_title">Stockfish (Traditional Engine)</string>
+    <string name="stockfish_desc">Classical chess engine with brute-force search. Excellent tactical analysis.</string>
+    
+    <string name="gguf_title">GGUF / Llama (Experimental)</string>
+    <string name="gguf_desc">Use local LLM models (GGUF format) for chess inference.</string>
+    
+    <string name="engine_parameters">Engine Parameters</string>
+    
+    <string name="lc0_info">LeelaChess0 analyzes positions by simulating thousands of games using neural networks.</string>
+    <string name="nodes_per_move">Nodes per move</string>
+    <string name="nodes_desc">Higher values = stronger play but slower moves (100-10000)</string>
+    <string name="threads">Threads</string>
+    <string name="threads_desc">Uses up to the available CPU cores.</string>
+    <string name="nn_backend">NN backend</string>
+    <string name="backend_options">Backend options</string>
+    <string name="backend_desc">GPU, OpenCL, or Metal backends require compatible engine builds and drivers.</string>
+    <string name="supported_backends">Supported backends: %1$s</string>
+    <string name="custom_weights_path">Custom Weights Path (Optional)</string>
+    <string name="weights_placeholder">/path/to/weights.pb.gz</string>
+    <string name="weights_desc">Leave empty to use downloaded weights.</string>
+    
+    <string name="stockfish_info">Stockfish evaluates positions by searching millions of possible moves.</string>
+    <string name="search_depth">Search depth</string>
+    <string name="depth_desc">Higher values = stronger play but slower moves (10-25)</string>
+    
+    <string name="gguf_info">GGUF Engine uses large language models quantized for local execution.</string>
+    <string name="model_path">Model Path</string>
+    <string name="model_placeholder">/path/to/model.gguf</string>
+    <string name="model_desc">Absolute path to the GGUF model file.</string>
+    
+    <string name="engine_setup">Engine Setup</string>
+
+    <!-- Piece Descriptions -->
+    <string name="desc_white_king">White King</string>
+    <string name="desc_white_queen">White Queen</string>
+    <string name="desc_white_rook">White Rook</string>
+    <string name="desc_white_bishop">White Bishop</string>
+    <string name="desc_white_knight">White Knight</string>
+    <string name="desc_white_pawn">White Pawn</string>
+    
+    <string name="desc_black_king">Black King</string>
+    <string name="desc_black_queen">Black Queen</string>
+    <string name="desc_black_rook">Black Rook</string>
+    <string name="desc_black_bishop">Black Bishop</string>
+    <string name="desc_black_knight">Black Knight</string>
+    <string name="desc_black_pawn">Black Pawn</string>
 </resources>
