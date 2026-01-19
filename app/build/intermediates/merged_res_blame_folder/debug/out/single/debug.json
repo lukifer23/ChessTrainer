@@ -84,6 +84,10 @@
         "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-65:/drawable/ic_chess_queen_black.xml"
     },
     {
+        "merged": "com.chesstrainer.app-merged_res-63:/drawable_ic_chess_missing.xml.flat",
+        "source": "com.chesstrainer.app-main-65:/drawable/ic_chess_missing.xml"
+    },
+    {
         "merged": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-merged_res-63:/drawable_ic_chess_knight_black.xml.flat",
         "source": "/Users/admin/.gradle/daemon/8.2/com.chesstrainer.app-main-65:/drawable/ic_chess_knight_black.xml"
     },

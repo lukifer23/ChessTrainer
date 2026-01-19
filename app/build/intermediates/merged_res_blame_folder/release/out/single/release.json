@@ -1,0 +1,66 @@
+[
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_queen_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_queen_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_king_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_king_white.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_rook_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_rook_white.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_knight_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_knight_white.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/xml_file_paths.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_rook_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_rook_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_missing.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_missing.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/xml_data_extraction_rules.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_knight_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_knight_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/xml_backup_rules.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_pawn_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_pawn_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_bishop_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_bishop_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_pawn_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_pawn_white.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_king_black.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_king_black.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_bishop_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_bishop_white.xml"
+    },
+    {
+        "merged": "com.chesstrainer.app-merged_res-60:/drawable_ic_chess_queen_white.xml.flat",
+        "source": "com.chesstrainer.app-main-61:/drawable/ic_chess_queen_white.xml"
+    }
+]

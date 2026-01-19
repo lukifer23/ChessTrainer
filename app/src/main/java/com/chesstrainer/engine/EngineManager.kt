@@ -85,7 +85,21 @@ class EngineManager(
             engineAssets.fold(
                 onSuccess = { assets ->
                     android.util.Log.d("EngineManager", "Engine assets: ${assets.engineBinary.absolutePath}")
+                    
+                    // Validate binary before attempting to start
+                    if (assets.engineBinary.length() == 0L) {
+                        return@fold Result.failure(Exception("Engine binary is empty (0 bytes). Please reinstall the engine."))
+                    }
+
                     lc0WeightsFile = assets.weightsFile
+
+                    // Special handling for GGUF stub
+                    if (settings.engineType == com.chesstrainer.utils.EngineType.GGUF && 
+                        (assets.engineBinary.absolutePath == "/dev/null" || !assets.engineBinary.exists())) {
+                         val msg = "GGUF Engine implementation is incomplete (no runner binary). Please use Stockfish or Leela."
+                         android.util.Log.e("EngineManager", msg)
+                         return@fold Result.failure(Exception(msg))
+                    }
 
                     val processBuilder = java.lang.ProcessBuilder(assets.engineBinary.absolutePath)
                         .directory(assets.engineBinary.parentFile)

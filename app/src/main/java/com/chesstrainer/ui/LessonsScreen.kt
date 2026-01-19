@@ -74,6 +74,10 @@ fun LessonsScreen(onNavigateBack: () -> Unit) {
                     )
                 }
             }
+            EngineType.GGUF -> {
+               // GGUF not yet supported for lessons
+               null
+            }
         }
     }
 

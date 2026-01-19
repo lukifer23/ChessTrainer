@@ -153,14 +153,11 @@ class EngineInstaller(private val context: Context) {
         try {
             android.util.Log.d("EngineInstaller", "Attempting to make executable: ${file.absolutePath}")
             
-            // 1. Java API
-            if (file.setExecutable(true, false)) { // owner only = false (all)
-                android.util.Log.d("EngineInstaller", "Java setExecutable(true) returned true")
-            } else {
-                android.util.Log.w("EngineInstaller", "Java setExecutable(true) returned false")
-            }
+            // 1. Java API - Try to set executable for all users (owner only = false)
+            val javaResult = file.setExecutable(true, false)
+            android.util.Log.d("EngineInstaller", "Java setExecutable(true, false) returned: $javaResult")
 
-            // 2. Shell chmod 755
+            // 2. Shell chmod 755 - Essential for many Android devices where Java API might report false negative or fail
             val process = ProcessBuilder("chmod", "755", file.absolutePath)
                 .redirectErrorStream(true)
                 .start()
@@ -172,9 +169,13 @@ class EngineInstaller(private val context: Context) {
                 android.util.Log.d("EngineInstaller", "chmod 755 success")
             } else {
                 android.util.Log.e("EngineInstaller", "chmod 755 failed (exit $exitCode): $output")
-                if (output.contains("Operation not permitted") || output.contains("Permission denied")) {
-                     android.util.Log.e("EngineInstaller", "System appears to block chmod (W^X violation likely).")
-                }
+            }
+            
+            // 3. Verification
+            if (!file.canExecute()) {
+                 android.util.Log.w("EngineInstaller", "File still reports !canExecute() after attempts.")
+                 // Last ditch attempt: simplify to owner-only executable
+                 file.setExecutable(true, true)
             }
         } catch (e: Exception) {
             android.util.Log.e("EngineInstaller", "Failed to set executable permissions", e)

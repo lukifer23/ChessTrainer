@@ -4,7 +4,12 @@
 
 A complete, modern, and feature-rich chess training application for Android devices, optimized for phones, tablets, and foldable devices. Features local chess engines (LeelaChess0 and Stockfish), interactive lessons, position analysis, and professional game export.
 
-**Current Status**: 🟢 **Successfully built and deployed to test device (Samsung Galaxy Fold 5)**
+**Current Status**: 🟢 **Successfully built and deployed to test device**
+
+**Recent Updates**:
+- **Visuals**: Professional vector assets and board coordinates.
+- **Engine**: Robust permission handling and empty binary validation.
+- **Stability**: Fixed compilation errors and runtime crashes for missing engines.
 
 ## 🎯 Features
 

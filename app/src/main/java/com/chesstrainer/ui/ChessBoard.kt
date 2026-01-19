@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -74,7 +75,7 @@ fun ChessBoard(
     availableMoves: List<Move> = emptyList(),
     lastMove: Move? = null,
     draggedPiece: Square? = null,
-    dragOffset: Offset = Offset.Zero,
+    @Suppress("UNUSED_PARAMETER") dragOffset: Offset = Offset.Zero,
     boardOrientation: com.chesstrainer.chess.Color = com.chesstrainer.chess.Color.WHITE,
     onSquareClick: (Square) -> Unit = {},
     onDragStart: (Square) -> Unit = {},
@@ -143,7 +144,7 @@ fun ChessBoard(
                                  }
                              }
                         },
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, _ ->
                             change.consume()
                             dragPosition = change.position
                         },
@@ -420,15 +421,50 @@ private fun DrawScope.drawChessPiece(
     )
 }
 
-private fun DrawScope.drawCoordinates(
-    @Suppress("UNUSED_PARAMETER") boardSize: Float,
-    @Suppress("UNUSED_PARAMETER") squareSize: Float,
-    @Suppress("UNUSED_PARAMETER") boardOrientation: com.chesstrainer.chess.Color,
-    @Suppress("UNUSED_PARAMETER") theme: BoardTheme
-) {
-    // Coordinate drawing temporarily disabled due to nativeCanvas API changes
-    // TODO: Implement coordinate drawing using Compose Text components
-}
+    private fun DrawScope.drawCoordinates(
+        boardSize: Float,
+        squareSize: Float,
+        boardOrientation: com.chesstrainer.chess.Color,
+        theme: BoardTheme
+    ) {
+        val paint = Paint().apply {
+            textSize = squareSize * 0.25f
+            isAntiAlias = true
+            color = theme.coordinateColor.toArgb()
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+
+        drawContext.canvas.nativeCanvas.apply {
+            // Draw file letters (a-h) at the bottom
+            for (file in 0..7) {
+                val char = 'a' + file
+                val displayFile = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) file else 7 - file
+                val x = displayFile * squareSize + squareSize * 0.85f
+                val y = boardSize - squareSize * 0.1f
+                
+                // Adjust color based on square color for better visibility if on top of square
+                // simplified: just draw on the edge or use the theme color ensuring high contrast
+                // For this implementation, we draw inside the square at the edge
+                val isLightSquare = (displayFile + (if (boardOrientation == com.chesstrainer.chess.Color.WHITE) 7 else 0)) % 2 == 0
+                paint.color = if (isLightSquare) theme.darkSquare.toArgb() else theme.lightSquare.toArgb()
+                
+                drawText(char.toString(), x, y, paint)
+            }
+
+            // Draw rank numbers (1-8) at the left
+            for (rank in 0..7) {
+                val num = 8 - rank
+                val displayRank = if (boardOrientation == com.chesstrainer.chess.Color.WHITE) rank else 7 - rank
+                val x = squareSize * 0.05f
+                val y = displayRank * squareSize + squareSize * 0.25f
+
+                val isLightSquare = (0 + displayRank) % 2 == 0
+                paint.color = if (isLightSquare) theme.darkSquare.toArgb() else theme.lightSquare.toArgb()
+
+                drawText(num.toString(), x, y, paint)
+            }
+        }
+    }
 
 private data class PieceKey(val color: com.chesstrainer.chess.Color, val type: PieceType)
 

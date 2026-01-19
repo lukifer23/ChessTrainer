@@ -15,11 +15,7 @@ public final class ChessBoardKt {
     private static final void drawChessPiece(androidx.compose.ui.graphics.drawscope.DrawScope $this$drawChessPiece, com.chesstrainer.ui.PieceAssets pieceImages, com.chesstrainer.chess.Piece piece, float centerX, float centerY, float size) {
     }
     
-    private static final void drawCoordinates(androidx.compose.ui.graphics.drawscope.DrawScope $this$drawCoordinates, @kotlin.Suppress(names = {"UNUSED_PARAMETER"})
-    float boardSize, @kotlin.Suppress(names = {"UNUSED_PARAMETER"})
-    float squareSize, @kotlin.Suppress(names = {"UNUSED_PARAMETER"})
-    com.chesstrainer.chess.Color boardOrientation, @kotlin.Suppress(names = {"UNUSED_PARAMETER"})
-    com.chesstrainer.ui.BoardTheme theme) {
+    private static final void drawCoordinates(androidx.compose.ui.graphics.drawscope.DrawScope $this$drawCoordinates, float boardSize, float squareSize, com.chesstrainer.chess.Color boardOrientation, com.chesstrainer.ui.BoardTheme theme) {
     }
     
     @androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Piece Asset Mapping")
